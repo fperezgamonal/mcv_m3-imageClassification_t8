@@ -9,18 +9,25 @@ class M3S1_Main:
 
 	# read train and test files
 	def readInput(type):   
-		if type == 'train':
-			#train_image_filenames
-			filenames = cPickle.load(open('train_images_filenames.dat','r')) 
-			#train_labels
-			labels = cPickle.load(open('train_labels.dat','r'))
-			print 'Loaded '+str(len(filenames))+' training images filenames with classes ',set(labels) 
-		elif type == 'test':
-			#test_images_filenames
-			filenames = cPickle.load(open('test_images_filenames.dat','r')) 
-			#test_labels
-			labels = cPickle.load(open('test_labels.dat','r'))
-			print 'Loaded '+str(len(filenames))+' testing images filenames with classes ',set(labels)     
+		while True:
+			try:
+				if type == 'train':
+					#train_image_filenames
+					filenames = cPickle.load(open('train_images_filenames.dat','r')) 
+					#train_labels
+					labels = cPickle.load(open('train_labels.dat','r'))
+					print 'Loaded '+str(len(filenames))+' training images filenames with classes ',set(labels) 
+				elif type == 'test':
+					#test_images_filenames
+					filenames = cPickle.load(open('test_images_filenames.dat','r')) 
+					#test_labels
+					labels = cPickle.load(open('test_labels.dat','r'))
+					print 'Loaded '+str(len(filenames))+' testing images filenames with classes ',set(labels)    
+				break
+			except ValueError:
+				filenames = []
+				labels = []
+				print 'Nothing was loaded'
 		return filenames, labels
 
 	# Extract SIFT features from an image
@@ -33,21 +40,22 @@ class M3S1_Main:
 		#	SIFTdetector = cv2.xfeatures2d.SIFT_create()
 		#else:
 		SIFTdetector = cv2.SIFT(nfeatures=100)
-		
 		# read the just 30 train images per class
 		# extract SIFT keypoints and descriptors
 		# store descriptors in a python list of numpy arrays
 		
 		Train_descriptors = []
 		Train_label_per_descriptor = []
-		
 		for i in range(len(filenames)):
 			filename=filenames[i]
+			print '===' + filename + '==='
 			if Train_label_per_descriptor.count(labels[i])<30:
+				
 				print 'Reading image '+filename
 				ima=cv2.imread(filename)
 				gray=cv2.cvtColor(ima,cv2.COLOR_BGR2GRAY)
 				kpt,des=SIFTdetector.detectAndCompute(gray,None)  
+				
 				Train_descriptors.append(des)
 				Train_label_per_descriptor.append(labels[i])
 				print str(len(kpt))+' extracted keypoints and descriptors'
@@ -88,41 +96,43 @@ class M3S1_Main:
 		return predictedclass
 
 
-	def INIT():
+	#def INIT():
 		# read train and test files
-		train_image_filenames, train_labels = readInput('train')
-		test_images_filenames, test_labels = readInput('test')
+	train_image_filenames, train_labels = readInput('train')
+	test_images_filenames, test_labels = readInput('test')
 
-		# Extract SIFT features from an image
-		detector, D, L = extractFeatures(train_image_filenames, train_labels)
+	# Extract SIFT features from an image
+	detector, D, L = extractFeatures(train_image_filenames, train_labels)
+	
+	# k-NN classifier
+	classifier = trainClassifier(D, L)
+	# =======================
+	# Test with performance evaluation
+	# Get all test data and predict  their labels
 
-		# k-NN classifier
-		classifier = trainClassifier(D, L)
-
-		# =======================
-		# Test with performance evaluation
-		# Get all test data and predict  their labels
-
-		numtestimages=0
-		numcorrect=0
-
-		for i in range(len(test_images_filenames)):
-			#filename=test_images_filenames[i]
-			#Testing k-NN classifier
-			predictedclass[i] = predictClass(test_images_filenames[i], detector, classifier)
-
-			print 'image '+filename+' was from class '+test_labels[i]+' and was predicted '+predictedclass[i]
-			numtestimages+=1
-			if predictedclass[i]==test_labels[i]:
-				numcorrect+=1
-
-		print 'Final accuracy: ' + str(numcorrect*100.0/numtestimages)
-
-		end=time.time()
+	print '==='
+	numtestimages=0
+	numcorrect=0
+	predictedclassList=[];
+	for i in range(len(test_images_filenames)):
+		filename=test_images_filenames[i]
+		#Testing k-NN classifier
+		predictedclass = predictClass(test_images_filenames[i], detector, classifier)
+		predictedclassList.append(predictedclass)
 		
-		ret =  'Done in '+str(end-start)+' secs.'
-		print ret
-		
-		return ret
+		print 'image '+filename+' was from class '+test_labels[i]+' and was predicted '+predictedclass
+		numtestimages+=1
+		if predictedclass==test_labels[i]:
+			numcorrect+=1
+	
+	# M3S1_Evaluation s'ha de passar "test_labels" i "predictedclassList"
+	print 'Final accuracy: ' + str(numcorrect*100.0/numtestimages)
+
+	end=time.time()
+	
+	ret =  'Done in '+str(end-start)+' secs.'
+	print ret
+	
+	#return ret
 
 	## 30.48% in 302 secs.
