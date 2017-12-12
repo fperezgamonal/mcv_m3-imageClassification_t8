@@ -26,13 +26,13 @@ class M3S1_Main:
 	# Extract SIFT features from an image
 	def extractFeatures(filenames, labels):
 		# create the SIFT detector object
-		(major, minor, _) = cv2.__version__.split(".")
+		#(major, minor, _) = cv2.__version__.split(".")
 		
 		# create SIFT detector object
-		if major >= 3:
-			SIFTdetector = cv2.xfeatures2d.SIFT_create()
-		else:
-			SIFTdetector = cv2.SIFT(nfeatures=100)
+		#if major >= 3:
+		#	SIFTdetector = cv2.xfeatures2d.SIFT_create()
+		#else:
+		SIFTdetector = cv2.SIFT(nfeatures=100)
 		
 		# read the just 30 train images per class
 		# extract SIFT keypoints and descriptors
@@ -88,7 +88,7 @@ class M3S1_Main:
 		return predictedclass
 
 
-	def INIT()
+	def INIT():
 		# read train and test files
 		train_image_filenames, train_labels = readInput('train')
 		test_images_filenames, test_labels = readInput('test')
@@ -120,7 +120,7 @@ class M3S1_Main:
 
 		end=time.time()
 		
-		ret = print 'Done in '+str(end-start)+' secs.'
+		ret =  'Done in '+str(end-start)+' secs.'
 		print ret
 		
 		return ret
