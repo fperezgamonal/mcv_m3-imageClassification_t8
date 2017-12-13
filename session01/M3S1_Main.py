@@ -3,6 +3,7 @@ import numpy as np
 import cPickle
 import time
 from sklearn.neighbors import KNeighborsClassifier
+from M3S1_Evaluation import *
 
 class M3S1_Main:
 	start = time.time()
@@ -48,7 +49,6 @@ class M3S1_Main:
 		Train_label_per_descriptor = []
 		for i in range(len(filenames)):
 			filename=filenames[i]
-			print '===' + filename + '==='
 			if Train_label_per_descriptor.count(labels[i])<30:
 				
 				print 'Reading image '+filename
@@ -96,8 +96,8 @@ class M3S1_Main:
 		return predictedclass
 
 
-	#def INIT():
-		# read train and test files
+#def INIT():
+	# read train and test files
 	train_image_filenames, train_labels = readInput('train')
 	test_images_filenames, test_labels = readInput('test')
 
@@ -110,7 +110,6 @@ class M3S1_Main:
 	# Test with performance evaluation
 	# Get all test data and predict  their labels
 
-	print '==='
 	numtestimages=0
 	numcorrect=0
 	predictedclassList=[];
@@ -126,13 +125,18 @@ class M3S1_Main:
 			numcorrect+=1
 	
 	# M3S1_Evaluation s'ha de passar "test_labels" i "predictedclassList"
-	print 'Final accuracy: ' + str(numcorrect*100.0/numtestimages)
+	
+	
+	eval = M3S1_Evaluation(None, None, None, None, None, predictedclassList);
+	eval.printEvaluation()
+	
+	#print 'Final accuracy: ' + str(numcorrect*100.0/numtestimages)
 
-	end=time.time()
+	end=time.time()	
 	
 	ret =  'Done in '+str(end-start)+' secs.'
 	print ret
 	
 	#return ret
 
-	## 30.48% in 302 secs.
+## 30.48% in 302 secs.
