@@ -2,8 +2,6 @@ import numpy as np
 import cPickle
 from operator import truediv
 
-from M3S1_Main import *
-
 # per a Conf Matrix
 from sklearn.metrics import confusion_matrix
 
@@ -111,7 +109,7 @@ class M3S1_Evaluation:
 		return average 
 		
 	# ROC Curves
-	#def rocCurves():
+	def rocCurves():
 		return 0
 
 	# print all evaluation data
@@ -123,7 +121,7 @@ class M3S1_Evaluation:
 		print "precision " + str(self.precision())
 		print "recall " + str(self.recall())
 		print "f1 Score " + str(self.f1Score())
-		print "cross validation " + str(self.crossValidation())
+		#print "cross validation " + str(self.crossValidation())
 		
 		print "TP" + str(self.__TP)
 		print "TN" + str(self.__TN)
