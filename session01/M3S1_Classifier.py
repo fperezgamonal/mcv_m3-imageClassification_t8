@@ -36,7 +36,7 @@ class Classifier:
 		self.__type = 'KNN'
         
 	def train(self, descriptors, labels):
-		assert(self.__configured)
+		#assert(self.__configured)
 
 		if self.__type == 'KNN':
 			print 'Training the knn classifier...'
@@ -44,10 +44,10 @@ class Classifier:
 		# training of other types of classifiers goes here
 		# else if self.__type == 'Whatever'
 		#   ...
-		print 'Done!'
+		#print 'Done!'
         
 	def predict(self, descriptor):
-		assert(self.__configured)
+		#assert(self.__configured)
 
 		if self.__type == 'KNN':
 			return self.__knn.predict(descriptor)

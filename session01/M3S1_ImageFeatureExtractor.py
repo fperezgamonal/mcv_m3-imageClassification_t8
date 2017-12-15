@@ -8,12 +8,12 @@ import cv2
 # After configuration we can extractFeatures() from an image by passing its
 # path by argument
 class ImageFeatureExtractor:
-	_slots__=['__configured','__type','__descriptor']
+	_slots__=['__configured','__type']
 
 	#initialize vars
-	def __init__(self):
+	def __init__(self, type):
 		self.__configured = False
-		self.__type = None
+		self.__type = type
 		self.__descriptor = None
 			
 	def configureSIFT(self, numFeatures):
@@ -57,7 +57,7 @@ class ImageFeatureExtractor:
 
 	# Extracts features of an image given a file path
 	def extractFeatures(self, filename):
-		assert(self.__configured)
+		#assert(self.__configured)
 
 		ima=cv2.imread(filename)
 		gray=cv2.cvtColor(ima,cv2.COLOR_BGR2GRAY)
@@ -65,7 +65,7 @@ class ImageFeatureExtractor:
 		if self.__type == 'SIFT':
 			kpt,des = self.__descriptor.detectAndCompute(gray,None)
 			print str(len(kpt))+' '+str(len(des))+' extracted keypoints and descriptors'
-		elif self.__type == 'HOG':        
+		else:#if self.__type == 'HOG':   			
 			winStride = (8,8)
 			padding = (8,8)
 			locations = ((10,20),)

@@ -2,6 +2,7 @@ import numpy as np
 import cPickle
 from operator import truediv
 from sklearn.neighbors import KNeighborsClassifier
+from M3S1_Classifier import Classifier
 
 
 # per a Conf Matrix
@@ -15,7 +16,7 @@ class M3S1_Evaluation:
 	__slots__=['__TP','__TN','__FP','__FN', '__test_labels', '__predictedclass']
 
 	#initialize vars
-	def __init__(self,predictedclass):
+	def __init__(self, predictedclass):
 		
 		self.__TP = None
 		self.__FP = None
@@ -107,12 +108,11 @@ class M3S1_Evaluation:
 			
 			#to unzip
 			aux = map(list, (zip(*train_data)))
-			# aux[0] => labels
-			# aux[1] =>  predictedclass
 			
-		
+	
 			#parameters of train classifier KNN: test_images_filenames[i], detector, classifier
-			classifier = self.trainClassifier([aux[0], aux[1]], [aux[0], aux[1]])
+			classifier = Classifier()
+			classifier.train([aux[0], aux[1]], [aux[0], aux[1]])
 			
 		# recalculate TP TN FP FN (the sane as  in cross validation)
 		# in order to calculate accuracy
@@ -163,12 +163,4 @@ class M3S1_Evaluation:
 		print "FP = " + str(self.__FP)
 		print "FN = " + str(self.__FN)
 	
-	def trainClassifier(self, D, L):
-		# Train a k-nn classifier
-		
-		#print 'Training the knn classifier...'
-		myknn = KNeighborsClassifier(n_neighbors=5,n_jobs=-1)
-		myknn.fit(D,L)
-		print 'Done!'
-
-		return myknn
+	
