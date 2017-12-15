@@ -1,6 +1,8 @@
 #!/usr/bin/env python2
 from sklearn.neighbors import KNeighborsClassifier
-
+import nltk
+from sklearn import datasets
+from sklearn.naive_bayes import GaussianNB
 # Classifier class that encapsulates a generic classifier
 # An instance of this class is expected to be configured first in order
 # to impersonate a given classifier (such as KNN). 
@@ -16,6 +18,8 @@ class Classifier:
 		self.__configured = False
 		self.__type = None
 		self.__knn = None
+		self.__bayes = GaussianNB()
+
 
 
 	def getType(self):
@@ -35,22 +39,33 @@ class Classifier:
 		self.__configured = True
 		self.__type = 'KNN'
 
+	def configureBayes(self):
+		assert(not self.__configured)
+		self.__configured = True
+		self.__type = 'Bayes'
+		
 	def train(self, descriptors, labels):
 		#assert(self.__configured)
 
 		if self.__type == 'KNN':
 			print 'Training the knn classifier...'
 			self.__knn.fit(descriptors, labels) 
+		elif self.__type == "Bayes":
+			
+			self.__bayes.fit(descriptors, labels)
 		# training of other types of classifiers goes here
 		# else if self.__type == 'Whatever'
 		#   ...
-		#print 'Done!'
+		#print 'Done!'xrange
 
 	def predict(self, descriptor):
 		#assert(self.__configured)
 
 		if self.__type == 'KNN':
 			return self.__knn.predict(descriptor)
+		elif self.__type== 'Bayes':
+			#return = self.__bayes.classify(descriptor)
+			return self.__bayes.predict(descriptor)
 		# prediction for other classifiers goes here ..
 		# else if self.__type == 'Whatever':
 		#...
