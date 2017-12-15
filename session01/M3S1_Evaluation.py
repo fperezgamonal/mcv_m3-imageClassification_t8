@@ -162,17 +162,3 @@ class M3S1_Evaluation:
 		print "TN = " + str(self.__TN)
 		print "FP = " + str(self.__FP)
 		print "FN = " + str(self.__FN)
-	
-<<<<<<< HEAD
-	def trainClassifier(self, D, L):
-		# Train a k-nn classifier
-		
-		print 'Training the knn classifier...'
-		myknn = KNeighborsClassifier(n_neighbors=5,n_jobs=-1)
-		myknn.fit(D,L)
-		print 'Done!'
-
-		return myknn
-=======
-	
->>>>>>> origin/master

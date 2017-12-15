@@ -6,7 +6,7 @@ from M3S1_Classifier import Classifier
 
 # Pipeline class to model the different stages of our solutions
 class M3S1_Pipeline:
-	__featureExtractor = ImageFeatureExtractor()
+	__featureExtractor = ImageFeatureExtractor("")
 	__classifier = Classifier()
 	__evaluation = None
 
@@ -94,13 +94,13 @@ class M3S1_Pipeline:
 		predictedclassList = self.__classifyImages(test_images_filenames)
 
 		# assess performance
-		self.__evaluation = M3S1_Evaluation(None, None, None, None, test_labels, predictedclassList);
+		self.__evaluation = M3S1_Evaluation(predictedclassList);
 
 	def getEvaluation(self):
 		return self.__evaluation
 
-		def getFeatureExtractor(self):
-			return self.__featureExtractor
+	def getFeatureExtractor(self):
+		return self.__featureExtractor
 
 	def getClassifier(self):
 		return self.__classifier

@@ -67,20 +67,20 @@ class ImageFeatureExtractor:
 	# Extracts features of an image given a file path
 	def extractFeatures(self, filename):
 		#assert(self.__configured)
-
+		kpt = None
+		
 		ima=cv2.imread(filename)
 		gray=cv2.cvtColor(ima,cv2.COLOR_BGR2GRAY)
 
 		if self.__type == 'SIFT':
 			kpt,des = self.__descriptor.detectAndCompute(gray,None)
 			print str(len(kpt))+' '+str(len(des))+' extracted keypoints and descriptors'
-		elif self.__type == 'HOG':   			
+		elif self.__type == 'HOG':
 			winStride = (8,8)
 			padding = (8,8)
 			locations = ((10,20),)
 			des = self.__descriptor.compute(gray,winStride,padding,locations)     
 		elif self.__type == 'HUEHIST':
-			kpt = None
 			hsv = cv2.cvtColor(ima, cv2.COLOR_BGR2HSV)
 			h,s,v = cv2.split(hsv)
 			hist,bins = np.histogram(h.ravel(), self.__hueHistogramBins, density=True)
