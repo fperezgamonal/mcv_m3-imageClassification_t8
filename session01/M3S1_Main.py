@@ -55,9 +55,10 @@ def extractAllFeatures(filenames, labels, featureExtractor):
 def predictClass(filename, featureExtractor, classifier):  
     kpt,des = featureExtractor.extractFeatures(filename)
     predictions = classifier.predict(des)
-    
+    return_counts=True
+	
     # Now we need to aggregate them all into a single image classification
-    values, counts = np.unique(predictions, return_counts=True)
+    values, counts = np.unique(predictions, return_counts)
     predictedclass = values[np.argmax(counts)]
     
     return predictedclass
@@ -78,8 +79,9 @@ featureExtractor.configureSIFT(100)
 D, L = extractAllFeatures(train_image_filenames, train_labels, featureExtractor)
 
 # k-NN classifier
+numNeighbors=5
 classifier = Classifier()
-classifier.configureKNN(numNeighbors=5)
+classifier.configureKNN(numNeighbors, -1)
 classifier.train(D, L)
 
 
@@ -103,7 +105,7 @@ for i in range(len(test_images_filenames)):
 
 
 # M3S1_Evaluation s'ha de passar "test_labels" i "predictedclassList"
-eval = M3S1_Evaluation(None, None, None, None, test_labels, predictedclassList);
+eval = M3S1_Evaluation(predictedclassList);
 eval.printEvaluation()
 
 end=time.time()

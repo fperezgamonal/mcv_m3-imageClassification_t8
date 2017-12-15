@@ -15,7 +15,7 @@ class M3S1_Evaluation:
 	__slots__=['__TP','__TN','__FP','__FN', '__test_labels', '__predictedclass']
 
 	#initialize vars
-	def __init__(self, TP, TN, FP, FN, test_labels, predictedclass):
+	def __init__(self,predictedclass):
 		
 		self.__TP = None
 		self.__FP = None
