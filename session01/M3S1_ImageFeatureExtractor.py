@@ -9,10 +9,7 @@ import numpy as np
 # After configuration we can extractFeatures() from an image by passing its
 # path by argument
 class ImageFeatureExtractor:
-	__hueHistogramBins = None
-	__descriptor = None
-	
-	_slots__=['__configured','__type']
+	_slots__=['__configured','__type', '__descriptor', '__hueHistogramBins']
 
 	#initialize vars
 	def __init__(self, type):
@@ -23,11 +20,11 @@ class ImageFeatureExtractor:
 	def configureSIFT(self, numFeatures):
 		assert(not self.__configured)
 
-		major = cv2.__version__.split(".")[0]
-
-		if major>=3:
+		try:
+			print 'cv3'
 			self.__descriptor = cv2.xfeatures2d.SIFT_create(nfeatures=numFeatures)
-		else:
+		except:
+			print 'cv2'
 			self.__descriptor = cv2.SIFT(nfeatures=numFeatures)
 			
 		self.__configured = True
