@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 import cv2
+import numpy as np
 
 # ImageFeatureExtractor class encapsulates the functionality of extracting
 # features from images using several image descriptors.
@@ -11,6 +12,7 @@ class ImageFeatureExtractor:
     __configured = False
     __type = None
     __descriptor = None
+    __hueHistogramBins = None
         
     def configureSIFT(self, numFeatures=100):
         assert(not self.__configured)
@@ -25,6 +27,12 @@ class ImageFeatureExtractor:
         self.__configured = True
         self.__type = 'SIFT'
     
+    def configureHueHistogram(self, bins):
+        assert(not self.__configured)
+        self.__hueHistogramBins = bins
+        self.__configured = True
+        self.__type = 'HUEHIST'
+        
     def configureHOG(self):
         assert(not self.__configured)
         
@@ -62,9 +70,16 @@ class ImageFeatureExtractor:
             kpt,des = self.__descriptor.detectAndCompute(gray,None)
             print str(len(kpt))+' '+str(len(des))+' extracted keypoints and descriptors'
         elif self.__type == 'HOG':        
+            kpt = None
             winStride = (8,8)
             padding = (8,8)
             locations = ((10,20),)
-            des = self.__descriptor.compute(gray,winStride,padding,locations)       
-        
-        return None, des
+            des = self.__descriptor.compute(gray,winStride,padding,locations) 
+        elif self.__type == 'HUEHIST':
+            kpt = None
+            hsv = cv2.cvtColor(ima, cv2.COLOR_BGR2HSV)
+            h,s,v = cv2.split(hsv)
+            hist,bins = np.histogram(h.ravel(), self.__hueHistogramBins, density=True)
+            des = np.array([hist])
+            
+        return kpt, des

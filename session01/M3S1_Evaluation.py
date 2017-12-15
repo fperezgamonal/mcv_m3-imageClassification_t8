@@ -166,7 +166,7 @@ class M3S1_Evaluation:
 		print "FP = " + str(self.__FP)
 		print "FN = " + str(self.__FN)
 	
-	def trainClassifier(D, L):
+	def trainClassifier(self, D, L):
 		# Train a k-nn classifier
 		
 		print 'Training the knn classifier...'
