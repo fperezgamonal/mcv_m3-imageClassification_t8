@@ -3,13 +3,18 @@ import cPickle
 from M3S1_Evaluation import M3S1_Evaluation
 from M3S1_ImageFeatureExtractor import ImageFeatureExtractor
 from M3S1_Classifier import Classifier
+from sklearn.cross_validation import cross_val_score
+from sklearn.cross_validation import KFold
 
 # Pipeline class to model the different stages of our solutions
 class M3S1_Pipeline:
-	__featureExtractor = ImageFeatureExtractor("")
-	__classifier = Classifier()
-	__evaluation = None
+	__slots__=['__featureExtractor', '__classifier', '__evaluation']
 
+	def __init__(self, recordData=False, useRecordedData=False, recordedDataName=''):
+		self.__featureExtractor = ImageFeatureExtractor("", recordData, useRecordedData, recordedDataName)
+		self.__classifier = Classifier()
+		self.__evaluation = None
+		
 	# read either train or test files
 	def __readInput(self, type):   
 		try:
@@ -50,7 +55,7 @@ class M3S1_Pipeline:
 
 		for i in range(1,len(Train_descriptors)):
 			D=np.vstack((D,Train_descriptors[i]))
-			L=np.hstack((L,np.array([Train_label_per_descriptor[i]]*Train_descriptors[i].shape[0])))        
+			L=np.hstack((L,np.array([Train_label_per_descriptor[i]]*Train_descriptors[i].shape[0])))
 
 		return D, L
 
@@ -84,17 +89,27 @@ class M3S1_Pipeline:
 	def run(self):
 		# read train and test files
 		train_image_filenames, train_labels = self.__readInput('train')
-		test_images_filenames, test_labels = self.__readInput('test')
-
 		# extract features from images and train classifier
 		D, L = self.__extractAllFeatures(train_image_filenames, train_labels)
 		self.__trainClassifier(D, L)
 
 		# predict test images with classifier
+		test_images_filenames, test_labels = self.__readInput('test')
 		predictedclassList = self.__classifyImages(test_images_filenames)
 
 		# assess performance
 		self.__evaluation = M3S1_Evaluation(predictedclassList);
+
+	def KFoldCrossValidate(self, k=10):
+		# read train and test files
+		train_image_filenames, train_labels = self.__readInput('train')
+		D, L = self.__extractAllFeatures(train_image_filenames, train_labels)
+		
+		cv = KFold(len(L), k, shuffle=True)
+		scores = cross_val_score(self.getClassifier().getClassifier(), D, L, cv=cv)
+		
+		return scores
+
 
 	def getEvaluation(self):
 		return self.__evaluation
