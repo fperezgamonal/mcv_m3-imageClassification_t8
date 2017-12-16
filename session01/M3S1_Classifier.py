@@ -1,6 +1,5 @@
 #!/usr/bin/env python2
 from sklearn.neighbors import KNeighborsClassifier
-import nltk
 from sklearn import datasets
 from sklearn.naive_bayes import GaussianNB
 # Classifier class that encapsulates a generic classifier
@@ -17,10 +16,7 @@ class Classifier:
 	def __init__(self):
 		self.__configured = False
 		self.__type = None
-		self.__knn = None
-		self.__bayes = GaussianNB()
-
-
+		self.__classifier = None
 
 	def getType(self):
 		return self.__type
@@ -33,14 +29,16 @@ class Classifier:
     # the classifier with a set of parameters
     # configuration of the classifier is mandatory (see self.__configured usage)
 	def configureKNN(self, numNeighbors, numJobs):
-		assert(not self.__configured)
+		#assert(not self.__configured)
 
-		self.__knn = KNeighborsClassifier(n_neighbors=numNeighbors, n_jobs=numJobs)   
+		self.__classifier = KNeighborsClassifier(n_neighbors=numNeighbors, n_jobs=numJobs)   
 		self.__configured = True
 		self.__type = 'KNN'
 
 	def configureBayes(self):
 		assert(not self.__configured)
+		
+		self.__classifier = GaussianNB()
 		self.__configured = True
 		self.__type = 'Bayes'
 		
@@ -49,10 +47,10 @@ class Classifier:
 
 		if self.__type == 'KNN':
 			print 'Training the knn classifier...'
-			self.__knn.fit(descriptors, labels) 
+			self.__classifier.fit(descriptors, labels) 
 		elif self.__type == "Bayes":
 			
-			self.__bayes.fit(descriptors, labels)
+			self.__classifier.fit(descriptors, labels)
 		# training of other types of classifiers goes here
 		# else if self.__type == 'Whatever'
 		#   ...
@@ -62,12 +60,14 @@ class Classifier:
 		#assert(self.__configured)
 
 		if self.__type == 'KNN':
-			return self.__knn.predict(descriptor)
+			return self.__classifier.predict(descriptor)
 		elif self.__type== 'Bayes':
 			#return = self.__bayes.classify(descriptor)
-			return self.__bayes.predict(descriptor)
+			return self.__classifier.predict(descriptor)
 		# prediction for other classifiers goes here ..
 		# else if self.__type == 'Whatever':
 		#...
-
 		return None
+	
+	def getClassifier(self):
+		return self.__classifier
