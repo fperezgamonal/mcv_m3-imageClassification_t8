@@ -1,15 +1,13 @@
 import numpy as np
 import cPickle
-from operator import truediv
-from sklearn.neighbors import KNeighborsClassifier
-from M3S1_Classifier import Classifier
-
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
+from sklearn.metrics import f1_score
+import matplotlib.pyplot as plt
 
 # per a Conf Matrix
 from sklearn.metrics import confusion_matrix
-
-# per a KFold Cross Validation
-from sklearn.model_selection import KFold
 	
 class M3S1_Evaluation:
 
@@ -27,125 +25,81 @@ class M3S1_Evaluation:
 		
 	# Accuracy
 	def accuracy(self):
-		a = self.__TP+self.__TN
-		b = self.__TP+self.__TN+self.__FP+self.__FN
-		return truediv(a,b)
+		return accuracy_score(self.__test_labels, self.__predictedclass)
 
 	# Precision
 	def precision(self):
-		a = self.__TP
-		b = self.__TP+self.__FP
-		return truediv(a,b)
+		return precision_score(self.__test_labels, self.__predictedclass, average='weighted')
 		
 	# Recall
 	def recall(self):
-		a = self.__TP
-		b = self.__TP+self.__TN
-		return truediv(a,b)
+		return recall_score(self.__test_labels, self.__predictedclass, average='weighted')
 		
 	# F1 Score
 	def f1Score(self):
-		a = 2 * self.precision() * self.recall()
-		b = self.precision() + self.recall()
-		return truediv(a,b)
+		return f1_score(self.__test_labels, self.__predictedclass, average='weighted')
 		
 	# Confusion Matrix
 	def confMatrix(self):
-		cm = confusion_matrix(self.__test_labels, self.__predictedclass)	
-		
-		TP = 0;
-		TN = 0;
-		FN = 0;
-		FP = 0;
-		sz= np.size(cm[0])
-		#print  'size = ' + str(sz)
-		for i in range(sz):
-			# True Positives
-			TP = TP + cm[i, i]
-			
-			# False Negatives
-			fn_mask = np.zeros(cm.shape)
-			fn_mask[i, :] = 1
-			fn_mask[i, i] = 0
-			FN = np.sum(np.multiply(cm, fn_mask))
-			
-			# False Positives
-			fp_mask = np.zeros(cm.shape)
-			fp_mask[:, i] = 1
-			fp_mask[i, i] = 0
-			FP = np.sum(np.multiply(cm, fp_mask))
-
-			# True Negatives
-			tn_mask = 1 - (fn_mask + fp_mask)
-			tn_mask[i, i] = 0
-			TN = np.sum(np.multiply(cm, tn_mask))
-		
-		self.__TP = TP
-		self.__FP = FP
-		self.__TN = TN
-		self.__FN = FN
+		cm = confusion_matrix(self.__test_labels, self.__predictedclass)
 		
 		return cm
-		
 
-	# KFold crossValidation	
-	def crossValidation (self):
-		# http://thelillysblog.com/2017/08/18/machine-learning-k-fold-validation/
+	def printConfMatrix(self):
+		cm = self.confMatrix()
 		
-		# data is an array with our already pre-processed dataset examples
-		kf = KFold(n_splits=8)
-		sum = 0
+		norm_conf = []
+		for i in cm:
+		    a = 0
+		    tmp_arr = []
+		    a = sum(i, 0)
+		    for j in i:
+		        tmp_arr.append(float(j)/float(a))
+		    norm_conf.append(tmp_arr)
+		
+		fig = plt.figure()
+		plt.clf()
+		ax = fig.add_subplot(111)
+		ax.set_aspect(1)
+		ax.imshow(np.array(norm_conf), cmap=plt.cm.jet, 
+		                interpolation='nearest')
+		
+		width, height = cm.shape
+		
+		for x in xrange(width):
+		    for y in xrange(height):
+		        ax.annotate(str(cm[x][y]), xy=(y, x), 
+		                    horizontalalignment='center',
+		                    verticalalignment='center')
+		
+		#cb = fig.colorbar(res)
+		classes = sorted(set(self.__test_labels))
+		plt.xticks(range(width), classes, rotation='vertical')
+		plt.yticks(range(height), classes)
+		plt.show()	
+
+	def tp (self):
+		cm = self.confMatrix()
 		TP = 0;
-		TN = 0;
-		FN = 0;
-		FP = 0;
-		
-		# prepar data to kf.split
-		data = zip(self.__test_labels,self.__predictedclass)
-		
-		for train, test in kf.split(data):
-			train_data = np.array(data)[train]
-			
-			#to unzip
-			aux = map(list, (zip(*train_data)))
-			
+		for i in range(np.size(cm[0])):
+			TP = TP + cm[i, i]
+		self.__TP = TP
+		return  self.__TP
 	
-			#parameters of train classifier KNN: test_images_filenames[i], detector, classifier
-			classifier = Classifier()
-			classifier.train([aux[0], aux[1]], [aux[0], aux[1]])
-			
-		# recalculate TP TN FP FN (the sane as  in cross validation)
-		# in order to calculate accuracy
-		cm = confusion_matrix(self.__test_labels, self.__predictedclass)	
-		sz= np.size(cm[0])
-		for i in range(sz):
-			# True Positives
-			TP = cm[i, i]
-			
-			# False Negatives
-			fn_mask = np.zeros(cm.shape)
-			fn_mask[i, :] = 1
-			fn_mask[i, i] = 0
-			FN = np.sum(np.multiply(cm, fn_mask))
-			
-			# False Positives
-			fp_mask = np.zeros(cm.shape)
-			fp_mask[:, i] = 1
-			fp_mask[i, i] = 0
-			FP = np.sum(np.multiply(cm, fp_mask))
-			
-			# True Negatives
-			tn_mask = 1 - (fn_mask + fp_mask)
-			tn_mask[i, i] = 0
-			TN1 = np.sum(np.multiply(cm, tn_mask))
-			
-		a = TP+TN
-		b = TP+TN+FP+FN
-		sum +=  a/b
-			
-		average = truediv(sum,8)
-			
-		return average 
+	# False Positives
+	def fp (self):
+		self.__FP = (self.__TP/self.precision()) - self.__TP
+		return self.__FP
+
+	# True Negatives
+	def tn (self):
+		self.__TN = (self.__TP/self.recall()) - self.__TP
+		return self.__TN
+
+	# False Negatives
+	def fn (self):
+		self.__FN = ((self.__TP + self.__TN)/self.accuracy()) - (self.__TP + self.__TN + self.__FP)
+		return self.__FN
 		
 	# print all evaluation data
 	def printEvaluation(self):
@@ -156,9 +110,12 @@ class M3S1_Evaluation:
 		print "precision = " + str(self.precision())
 		print "recall = " + str(self.recall())
 		print "f1 Score = " + str(self.f1Score())
-		print "cross validation " + str(self.crossValidation())
 		
-		print "TP = " + str(self.__TP)
-		print "TN = " + str(self.__TN)
-		print "FP = " + str(self.__FP)
-		print "FN = " + str(self.__FN)
+		print "TP = " + str(self.tp())
+		print "TN = " + str(self.tn())
+		print "FP = " + str(self.fp())
+		print "FN = " + str(self.fn())
+		
+		self.printConfMatrix()
+		
+
