@@ -61,7 +61,7 @@ class M3S1_Evaluation:
 		#print  'size = ' + str(sz)
 		for i in range(sz):
 			# True Positives
-			TP = cm[i, i]
+			TP = TP + cm[i, i]
 			
 			# False Negatives
 			fn_mask = np.zeros(cm.shape)
@@ -78,7 +78,7 @@ class M3S1_Evaluation:
 			# True Negatives
 			tn_mask = 1 - (fn_mask + fp_mask)
 			tn_mask[i, i] = 0
-			TN1 = np.sum(np.multiply(cm, tn_mask))
+			TN = np.sum(np.multiply(cm, tn_mask))
 		
 		self.__TP = TP
 		self.__FP = FP
