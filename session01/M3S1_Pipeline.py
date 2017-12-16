@@ -84,6 +84,7 @@ class M3S1_Pipeline:
 
 			print 'image '+filename+' predicted '+predictedclass
 
+		
 		return predictedclassList
 
 	def run(self):
@@ -97,6 +98,7 @@ class M3S1_Pipeline:
 		test_images_filenames, test_labels = self.__readInput('test')
 		predictedclassList = self.__classifyImages(test_images_filenames)
 
+		
 		# assess performance
 		self.__evaluation = M3S1_Evaluation(predictedclassList);
 
@@ -106,9 +108,9 @@ class M3S1_Pipeline:
 		D, L = self.__extractAllFeatures(train_image_filenames, train_labels)
 		
 		cv = KFold(len(L), k, shuffle=True)
-		scores = cross_val_score(self.getClassifier().getClassifier(), D, L, cv=cv)
-		
-		return scores
+		accs = cross_val_score(self.getClassifier().getClassifier(), D, L, cv=cv)
+
+		return accs.mean(), accs.std() * 2
 
 
 	def getEvaluation(self):
