@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import os
 import cPickle
-from sklearn.lda import LDA
+#from sklearn.lda import LDA
 from sklearn.decomposition import PCA
 
 # ImageFeatureExtractor class encapsulates the functionality of extracting
@@ -46,15 +46,15 @@ class ImageFeatureExtractor:
 		self.__type = 'SIFT'
 		
 		
-	def configureHOG(self, numBins=9):
+	def configureHOG(self, scale):#numBins=9):
 		#assert(not self.__configured)
 		
 		windowSize = 256
 		winSize = (windowSize,windowSize)
-		blockSize = (windowSize/2,windowSize/2)
-		blockStride = (windowSize/4,windowSize/4)
-		cellSize = (windowSize/4,windowSize/4)
-		nbins = numBins
+		blockSize = (windowSize/(2*scale),windowSize/(2*scale))
+		blockStride = (windowSize/(4*scale),windowSize/(4*scale))
+		cellSize = (windowSize/(4*scale),windowSize/(4*scale))
+		nbins = 9
 		derivAperture = 1
 		winSigma = -1.
 		histogramNormType = 0
@@ -103,7 +103,6 @@ class ImageFeatureExtractor:
 				#locations = ((10,20),)
 				#downscaled_ima = cv2.resize(ima, (self.__hogWinSize, self.__hogWinSize), interpolation=cv2.INTER_AREA)
 				des = self.__descriptor.compute(ima) #,winStride,padding,locations)
-				print des
 			elif self.__type == 'HUEHIST':
 				hsv = cv2.cvtColor(ima, cv2.COLOR_BGR2HSV)
 				h,s,v = cv2.split(hsv)
