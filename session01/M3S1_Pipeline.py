@@ -43,12 +43,11 @@ class M3S1_Pipeline:
 		for i in range(len(filenames)):
 			filename=filenames[i]
 			print '===' + filename + '==='
-			if Train_label_per_descriptor.count(labels[i])<30:
-				Train_label_per_descriptor.append(labels[i])
-
-				print 'Reading image '+filename
-				keypoints, descriptors = self.__featureExtractor.extractFeatures(filename)
-				Train_descriptors.append(descriptors)
+			#if Train_label_per_descriptor.count(labels[i])<30:
+			Train_label_per_descriptor.append(labels[i])
+			print 'Reading image '+filename
+			keypoints, descriptors = self.__featureExtractor.extractFeatures(filename)
+			Train_descriptors.append(descriptors)
 
 		D=Train_descriptors[0]
 		L=np.array([Train_label_per_descriptor[0]]*Train_descriptors[0].shape[0])
@@ -108,8 +107,8 @@ class M3S1_Pipeline:
 		D, L = self.__extractAllFeatures(train_image_filenames, train_labels)
 		
 		cv = KFold(len(L), k, shuffle=True)
-		accs = cross_val_score(self.getClassifier().getClassifier(), D, L, cv=cv)
-
+		accs = cross_val_score(self.getClassifier().getClassifier(), D, L, cv=cv, scoring='accuracy')
+		
 		return accs.mean(), accs.std() * 2
 
 

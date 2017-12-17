@@ -1,7 +1,9 @@
 #!/usr/bin/env python2
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import datasets
-from sklearn.naive_bayes import GaussianNB
+from sklearn.naive_bayes import GaussianNB, MultinomialNB
+from sklearn.ensemble import RandomForestClassifier
+
 # Classifier class that encapsulates a generic classifier
 # An instance of this class is expected to be configured first in order
 # to impersonate a given classifier (such as KNN). 
@@ -10,12 +12,11 @@ from sklearn.naive_bayes import GaussianNB
 # We can also predict() a descriptor using the given classifier
 class Classifier:
 	
-	__slots__=['__configured', '__type', '__knn']
+	__slots__=['__configured', '__knn']
 
 	#initialize vars
 	def __init__(self):
 		self.__configured = False
-		self.__type = None
 		self.__classifier = None
 
 	def getType(self):
@@ -29,45 +30,26 @@ class Classifier:
     # the classifier with a set of parameters
     # configuration of the classifier is mandatory (see self.__configured usage)
 	def configureKNN(self, numNeighbors, numJobs):
-		#assert(not self.__configured)
-
 		self.__classifier = KNeighborsClassifier(n_neighbors=numNeighbors, n_jobs=numJobs)   
 		self.__configured = True
-		self.__type = 'KNN'
 
-	def configureBayes(self):
-		assert(not self.__configured)
-		
+	def configureGaussianNBayes(self):
 		self.__classifier = GaussianNB()
 		self.__configured = True
-		self.__type = 'Bayes'
+	
+	def configureMultinomialNBayes(self, alpha = 1.0):
+		self.__classifier = MultinomialNB()
+		self.__configured = True
+	
+	def configureRandomForest(self, numEstimators=10):
+		self.__classifier = RandomForestClassifier(n_estimators=numEstimators)
+		self.__configured = True
 		
 	def train(self, descriptors, labels):
-		#assert(self.__configured)
-
-		if self.__type == 'KNN':
-			print 'Training the knn classifier...'
-			self.__classifier.fit(descriptors, labels) 
-		elif self.__type == "Bayes":
-			
-			self.__classifier.fit(descriptors, labels)
-		# training of other types of classifiers goes here
-		# else if self.__type == 'Whatever'
-		#   ...
-		#print 'Done!'xrange
+		self.__classifier.fit(descriptors, labels) 
 
 	def predict(self, descriptor):
-		#assert(self.__configured)
-
-		if self.__type == 'KNN':
-			return self.__classifier.predict(descriptor)
-		elif self.__type== 'Bayes':
-			#return = self.__bayes.classify(descriptor)
-			return self.__classifier.predict(descriptor)
-		# prediction for other classifiers goes here ..
-		# else if self.__type == 'Whatever':
-		#...
-		return None
+		return self.__classifier.predict(descriptor)
 	
 	def getClassifier(self):
 		return self.__classifier

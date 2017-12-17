@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 import os
 import cPickle
+from sklearn.lda import LDA
+from sklearn.decomposition import PCA
 
 # ImageFeatureExtractor class encapsulates the functionality of extracting
 # features from images using several image descriptors.
@@ -22,6 +24,7 @@ class ImageFeatureExtractor:
 		self.__recordData = recordData
 		self.__useRecordedData = useRecordedData
 		self.__recordedDataName = recordedDataName
+
 		
 		if self.__recordData:
 			if not os.path.isdir('../../Databases/FeatureCache'):
@@ -41,22 +44,26 @@ class ImageFeatureExtractor:
 			
 		self.__configured = True
 		self.__type = 'SIFT'
-
-	def configureHOG(self):
+		
+		
+	def configureHOG(self, numBins=9):
 		#assert(not self.__configured)
-
-		winSize = (64,64)
-		blockSize = (16,16)
-		blockStride = (8,8)
-		cellSize = (8,8)
-		nbins = 9
+		
+		windowSize = 256
+		winSize = (windowSize,windowSize)
+		blockSize = (windowSize/2,windowSize/2)
+		blockStride = (windowSize/4,windowSize/4)
+		cellSize = (windowSize/4,windowSize/4)
+		nbins = numBins
 		derivAperture = 1
-		winSigma = 4.
+		winSigma = -1.
 		histogramNormType = 0
-		L2HysThreshold = 2.0000000000000001e-01
-		gammaCorrection = 0
-		nlevels = 64
-		self.__descriptor = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,winSigma,histogramNormType,L2HysThreshold,gammaCorrection,nlevels)
+		L2HysThreshold = 0.2
+		gammaCorrection = 1
+		nlevels = windowSize
+		signedGradients = True
+
+		self.__descriptor = cv2.HOGDescriptor(winSize,blockSize,blockStride,cellSize,nbins,derivAperture,winSigma,histogramNormType,L2HysThreshold,gammaCorrection,nlevels,signedGradients)
 
 		self.__configured = True
 		self.__type = 'HOG'
@@ -91,10 +98,12 @@ class ImageFeatureExtractor:
 				kpt,des = self.__descriptor.detectAndCompute(gray,None)
 				print str(len(kpt))+' '+str(len(des))+' extracted keypoints and descriptors'
 			elif self.__type == 'HOG':
-				winStride = (8,8)
-				padding = (8,8)
-				locations = ((10,20),)
-				des = self.__descriptor.compute(gray,winStride,padding,locations)     
+				#winStride = (8,8)
+				#padding = (8,8)
+				#locations = ((10,20),)
+				#downscaled_ima = cv2.resize(ima, (self.__hogWinSize, self.__hogWinSize), interpolation=cv2.INTER_AREA)
+				des = self.__descriptor.compute(ima) #,winStride,padding,locations)
+				print des
 			elif self.__type == 'HUEHIST':
 				hsv = cv2.cvtColor(ima, cv2.COLOR_BGR2HSV)
 				h,s,v = cv2.split(hsv)

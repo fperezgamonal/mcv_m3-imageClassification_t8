@@ -88,7 +88,7 @@ class M3S1_Evaluation:
 		suma = np.sum(cm)
 		self.__TN = suma - self.__TP
 		
-		return  self.__TP self.__TN
+		return  self.__TP, self.__TN
 	
 	# False Positives
 	#def fp (self):
