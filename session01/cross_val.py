@@ -3,13 +3,11 @@ import time
 import numpy as np
 from M3S1_Pipeline import M3S1_Pipeline
 
-
-# SIFT with 100 features + 5-KNN
 def testSIFT_KNN():
 	pipeline = M3S1_Pipeline()
 
 	values = []
-	for feats in range(10,101,20):
+	for feats in range(20,101,20):
 		for k in range(3,11):
 			pipeline.getFeatureExtractor().configureSIFT(feats)
 			#pipeline.getFeatureExtractor().configureHueHistogram(100)
@@ -30,7 +28,7 @@ def testSIFT_KNN_ext():
 	pipeline = M3S1_Pipeline()
 
 	values = []
-	for feats in range(10,101,20):
+	for feats in range(20,101,20):
 		for k in range(11,13):
 			pipeline.getFeatureExtractor().configureSIFT(feats)
 			#pipeline.getFeatureExtractor().configureHueHistogram(100)
@@ -196,8 +194,83 @@ def testHOG_SVM():
 	print 'Maximum accuracy achieved in CV: {0:.3f}'.format(maxAccuracy)
 	return values
 
+def testSIFT_GaussianNBayes():
+	pipeline = M3S1_Pipeline()
 
-# select which one(s) to print
+	values = []
+	for feats in range(20,201,20):
+		pipeline.getFeatureExtractor().configureSIFT(feats)
+		#pipeline.getFeatureExtractor().configureHueHistogram(100)
+		pipeline.getClassifier().configureGaussianNBayes()
+		#pipeline.getClassifier().configureBayes()
+		
+		start = time.time()
+		acc, std = pipeline.KFoldCrossValidate()
+		print("Mean score: {0:.3f} (+/-{1:.3f})".format(acc, std))
+		end=time.time()
+		print 'Done in '+str(end-start)+' secs.'	
+		
+		values.append([feats, acc, std, end-start])
+		
+	return values
 
-#print testSIFT_KNN_ext()
-testHOG_RForest()
+def testSIFT_MultinomialNBayes():
+	pipeline = M3S1_Pipeline()
+
+	values = []
+	for feats in range(20,201,20):
+		pipeline.getFeatureExtractor().configureSIFT(feats)
+		#pipeline.getFeatureExtractor().configureHueHistogram(100)
+		pipeline.getClassifier().configureMultinomialNBayes()
+		#pipeline.getClassifier().configureBayes()
+		
+		start = time.time()
+		acc, std = pipeline.KFoldCrossValidate()
+		print("Mean score: {0:.3f} (+/-{1:.3f})".format(acc, std))
+		end=time.time()
+		print 'Done in '+str(end-start)+' secs.'	
+		
+		values.append([feats, acc, std, end-start])
+		
+	return values
+
+def testSIFT_RandomForest():
+	values = []
+	for feats in range(20,201,20):
+		pipeline = M3S1_Pipeline()
+		pipeline.getFeatureExtractor().configureSIFT(feats)
+		#pipeline.getFeatureExtractor().configureHueHistogram(100)
+		pipeline.getClassifier().configureRandomForest()
+		#pipeline.getClassifier().configureBayes()
+		
+		start = time.time()
+		acc, std = pipeline.KFoldCrossValidate()
+		print("Mean score: {0:.3f} (+/-{1:.3f})".format(acc, std))
+		end=time.time()
+		print 'Done in '+str(end-start)+' secs.'	
+		
+		values.append([feats, acc, std, end-start])
+		
+	return values
+
+def testHOG_KNN():
+	values = []
+	for scale in [1,2,4,8,16]:
+		pipeline = M3S1_Pipeline()
+		pipeline.getFeatureExtractor().configureHOG(scale)
+		#pipeline.getFeatureExtractor().configureHueHistogram(100)
+		#pipeline.getClassifier().configureRandomForest()
+		pipeline.getClassifier().configureKNN(8,-1)
+		
+		start = time.time()
+		acc, std = pipeline.KFoldCrossValidate()
+		print("Mean score: {0:.3f} (+/-{1:.3f})".format(acc, std))
+		end=time.time()
+		print 'Done in '+str(end-start)+' secs.'	
+		
+		values.append([scale, acc, std, end-start])
+		
+	return values
+
+
+testHOG_KNN()
