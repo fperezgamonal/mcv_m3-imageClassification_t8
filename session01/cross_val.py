@@ -1,276 +1,212 @@
 #!/usr/bin/env python2
 import time
+import sys
 import numpy as np
 from M3S1_Pipeline import M3S1_Pipeline
 
-def testSIFT_KNN():
+# Parameters:
+num = 0						# Select scheme (see bottom of script)
+plotCV = True				# Enable/disable plotting
+
+# Define cross validation parameters for each scheme and run it
+def test_scheme(scheme):
+	# 1st classifier: KNN
+	if 0 <= scheme <= 2:
+		# Load KNN-specific params
+		clf_type = 'KNN'
+		clf_params = {'n_neighbors': [30]}
+
+		# feats: SIFT
+		if scheme == 0:
+			feat_type = 'SIFT'
+			feat_list = [60]		#range(20,101,20)
+
+		# feats: HueHist
+		elif scheme == 1:
+			feat_type = 'HueHist'
+			feat_list = range(8, 256, 32)
+
+		# feats: HOG
+		else:
+			feat_type = 'HOG'
+			feat_list = [1, 2, 4, 8, 16]
+
+	# 2nd classifier: GaussianN Bayes
+	elif 2 < scheme <= 5:
+		# Load GaussianN Bayes-specific params
+		clf_type = 'GaussNBayes'
+		print "No parameter used, only one was available: 'prior' (probability)"
+
+		# feats: SIFT
+		if scheme == 3:
+			feat_type = 'SIFT'
+			feat_list = range(20, 101, 20)
+
+		# feats: HueHist
+		elif scheme == 4:
+			feat_type = 'HueHist'
+			feat_list = range(8, 256, 32)
+
+		# feats: HOG
+		else:
+			feat_type = 'HOG'
+			feat_list = [1, 2, 4, 8, 16]
+
+	# 3rd classifier: MultinomialN Bayes
+	elif 5 < scheme <= 8:
+		# Load MultinomialN Bayes-specific params
+		clf_type = 'MultinomialNBayes'
+		print "No parameter used, three were available: 2 'prior', 1 smoothing factor"
+
+		# feats: SIFT
+		if scheme == 6:
+			feat_type = 'SIFT'
+			feat_list = range(20, 101, 20)
+
+		# feats: HueHist
+		elif scheme == 7:
+			feat_type = 'HueHist'
+			feat_list = range(8, 256, 32)
+
+		# feats: HOG
+		else:
+			feat_type = 'HOG'
+			feat_list = [1, 2, 4, 8, 16]
+
+	# 4th classifier: Random Forest
+	elif 8 < scheme <= 11:
+		# Load Random Forest-specific params
+		clf_type = 'RForest'
+		clf_params = {'n_estimators': range(1, 100)}
+
+		# feats: SIFT
+		if scheme == 9:
+			feat_type = 'SIFT'
+			feat_list = range(20, 101, 20)
+
+		# feats: HueHist
+		elif scheme == 10:
+			feat_type = 'HueHist'
+			feat_list = range(8, 256, 32)
+
+		# feats: HOG
+		else:
+			feat_type = 'HOG'
+			feat_list = [1, 2, 4, 8, 16]
+
+	# 5th classifier: SVM
+	elif 11 < scheme <= 14:
+		# Load SVM-specific params
+		clf_type = 'SVM'
+		clf_params = {'C': np.logspace(-2, 10, 13),
+					   'gamma': np.logspace(-9, 3, 13),
+					   'kernel': ('linear', 'rbf'),
+					   'probability': False}
+
+		# feats: SIFT
+		if scheme == 12:
+			feat_type = 'SIFT'
+			feat_list = range(20, 101, 20)
+
+		# feats: HueHist
+		elif scheme == 13:
+			feat_type = 'HueHist'
+			feat_list = range(8, 256, 32)
+
+		# feats: HOG
+		else:
+			feat_type = 'HOG'
+			feat_list = [1, 2, 4, 8, 16]
+
+	# Wrong 'num' value, finish execution (to avoid code repetition)
+	else:
+		sys.exit("Scheme number 'num' out of range 1-14")
+
+	# Common commands (main loop for CV)
+	print 'CV w. feat_type={!s} & clf_type={!s}...'.format(feat_type,clf_type)
+
 	pipeline = M3S1_Pipeline()
 
-	values = []
-	for feats in range(20,101,20):
-		for k in range(3,11):
+	values = []		# * not returned or saved. Consider deletion
+	for feats in feat_list:
+		# SIFT
+		if scheme in [0, 3, 6, 9, 12]:
 			pipeline.getFeatureExtractor().configureSIFT(feats)
-			#pipeline.getFeatureExtractor().configureHueHistogram(100)
-			pipeline.getClassifier().configureKNN(k,-1)
-			#pipeline.getClassifier().configureBayes()
-			
-			start = time.time()
-			acc, std = pipeline.KFoldCrossValidate()
-			print("Mean score: {0:.3f} (+/-{1:.3f})".format(acc, std))
-			end=time.time()
-			print 'Done in '+str(end-start)+' secs.'	
-			
-			values.append([feats, k, acc, std, end-start])
-		
-	return values
-
-def testSIFT_KNN_ext():
-	pipeline = M3S1_Pipeline()
-
-	values = []
-	for feats in range(20,101,20):
-		for k in range(11,13):
-			pipeline.getFeatureExtractor().configureSIFT(feats)
-			#pipeline.getFeatureExtractor().configureHueHistogram(100)
-			pipeline.getClassifier().configureKNN(k,-1)
-			#pipeline.getClassifier().configureBayes()
-			
-			start = time.time()
-			acc, std = pipeline.KFoldCrossValidate()
-			print("Mean score: {0:.3f} (+/-{1:.3f})".format(acc, std))
-			end=time.time()
-			print 'Done in '+str(end-start)+' secs.'	
-			
-			values.append([feats, k, acc, std, end-start])
-		
-	return values
-
-# Hue histogram + KNN
-def testHueHistogram_KNN():
-	pipeline = M3S1_Pipeline()
-	print 'Starting cross-validation with Hue + KNN'
-
-	values = []
-	for feats in range(8, 256, 32):
-		for k in range(3, 11):
-			#pipeline.getFeatureExtractor().configureHOG()
+		# HueHist
+		elif scheme in [1, 4, 7, 10, 13]:
 			pipeline.getFeatureExtractor().configureHueHistogram(feats)
-			pipeline.getClassifier().configureKNN(k, -1)
-			# pipeline.getClassifier().configureBayes()
-
-			start = time.time()
-			acc, std = pipeline.KFoldCrossValidate()
-			print("Mean score: {0:.3f} (+/-{1:.3f})".format(acc, std))
-			end = time.time()
-			print 'Done in ' + str(end - start) + ' secs.'
-
-			values.append([feats, k, acc, std, end - start])
-
-	return values
-
-# HOG + Random Forests
-def testHOG_RForest():
-	pipeline = M3S1_Pipeline()
-	print 'Starting cross-validation with HOG + RandomForests'
-
-	values = []
-	for feats in [1,2,4,8,16]:
-		for numEstimators in range(2, 11):
+		# HOG
+		elif scheme in [2, 5, 8, 11, 14]:
 			pipeline.getFeatureExtractor().configureHOG(feats)
-			#pipeline.getFeatureExtractor().configureHueHistogram(feats)
-			#pipeline.getClassifier().configureKNN(k, -1)
-			# pipeline.getClassifier().configureBayes()
-			pipeline.getClassifier().configureRandomForest(numEstimators)
+		# Default
+		else:
+			pipeline.getFeatureExtractor().configureSIFT(feats)
 
-			start = time.time()
-			acc, std = pipeline.KFoldCrossValidate()
-			print("Mean score: {0:.3f} (+/-{1:.3f})".format(acc, std))
-			end = time.time()
-			print 'Done in ' + str(end - start) + ' secs.'
-
-			values.append([feats, numEstimators, acc, std, end - start])
-
-	return values
-
-# SIFT with feats features + SVM
-def testSIFT_SVM():
-	# Define test params:
-
-	C_range = np.logspace(-2, 10, 13)
-	gamma_range = np.logspace(-9, 3, 13)
-	kernel = 1
-
-	pipeline = M3S1_Pipeline()
-	print 'Starting cross-validation with SIFT + SVM'
-
-	values = []
-	for feats in range(10, 101, 20):
-		for C in C_range:
-			for gamma in gamma_range:
-				pipeline.getFeatureExtractor().configureSIFT(feats)
-				# pipeline.getFeatureExtractor().configureHueHistogram(100)
-				pipeline.getClassifier().configureSVM(C, gamma, kernel)
-				# pipeline.getClassifier().configureBayes()
-
-				start = time.time()
-				acc, std = pipeline.KFoldCrossValidate()
-				print 'Results for parameters: feats={0:d}, C={0:.3f}, gamma={0:.3f}, kernel={0:d}'.format(feats,C,gamma,kernel)
-				("Mean score: {0:.3f} (+/-{1:.3f})".format(acc, std))
-				end = time.time()
-				print 'Done in ' + str(end - start) + ' secs.'
-
-				values.append([feats, C, gamma, kernel, acc, std, end - start])
-	# Return parameters that yielded the maximum accuracy (store the values anyway to plot them)
-	maxAccuracy = max(pos[2] for pos in values)
-	print 'Maximum accuracy achieved in CV: {0:.3f}'.format(maxAccuracy)
-	return values
-
-
-# HueHist + SVM
-def testHue_SVM():
-	# Define test params:
-
-	C_range = np.logspace(-2, 10, 13)
-	gamma_range = np.logspace(-9, 3, 13)
-	kernel = 1
-
-	pipeline = M3S1_Pipeline()
-	print 'Starting cross-validation with Hue Hist + SVM'
-
-	values = []
-	for feats in range(10, 101, 20):
-		for C in C_range:
-			for gamma in gamma_range:
-				#pipeline.getFeatureExtractor().configureSIFT(feats)
-				pipeline.getFeatureExtractor().configureHueHistogram(100)
-				pipeline.getClassifier().configureSVM(C, gamma, kernel)
-				# pipeline.getClassifier().configureBayes()
-
-				start = time.time()
-				acc, std = pipeline.KFoldCrossValidate()
-				print 'Results for parameters: feats={0:d}, C={0:.3f}, gamma={0:.3f}, kernel={0:d}'.format(feats,C,gamma,kernel)
-				("Mean score: {0:.3f} (+/-{1:.3f})".format(acc, std))
-				end = time.time()
-				print 'Done in ' + str(end - start) + ' secs.'
-
-				values.append([feats, C, gamma, kernel, acc, std, end - start])
-	# Return parameters that yielded the maximum accuracy (store the values anyway to plot them)
-	maxAccuracy = max(pos[2] for pos in values)
-	print 'Maximum accuracy achieved in CV: {0:.3f}'.format(maxAccuracy)
-	return values
-
-
-# HOG + SVM
-def testHOG_SVM():
-	# Define test params:
-
-	C_range = np.logspace(-2, 10, 13)
-	gamma_range = np.logspace(-9, 3, 13)
-	kernel = 1
-
-	pipeline = M3S1_Pipeline()
-	print 'Starting cross-validation with HOG + SVM'
-
-	values = []
-	for feats in [1,2,4,8,16]:
-		for C in C_range:
-			for gamma in gamma_range:
-				pipeline.getFeatureExtractor().configureHOG(feats)
-				#pipeline.getFeatureExtractor().configureSIFT(feats)
-				# pipeline.getFeatureExtractor().configureHueHistogram(100)
-				pipeline.getClassifier().configureSVM(C, gamma, kernel)
-				# pipeline.getClassifier().configureBayes()
-
-				start = time.time()
-				acc, std = pipeline.KFoldCrossValidate()
-				print 'Results for parameters: feats={0:d}, C={0:.3f}, gamma={0:.3f}, kernel={0:d}'.format(feats,C,gamma,kernel)
-				("Mean score: {0:.3f} (+/-{1:.3f})".format(acc, std))
-				end = time.time()
-				print 'Done in ' + str(end - start) + ' secs.'
-
-				values.append([feats, C, gamma, kernel, acc, std, end - start])
-	# Return parameters that yielded the maximum accuracy (store the values anyway to plot them)
-	maxAccuracy = max(pos[2] for pos in values)
-	print 'Maximum accuracy achieved in CV: {0:.3f}'.format(maxAccuracy)
-	return values
-
-def testSIFT_GaussianNBayes():
-	pipeline = M3S1_Pipeline()
-
-	values = []
-	for feats in range(20,201,20):
-		pipeline.getFeatureExtractor().configureSIFT(feats)
-		#pipeline.getFeatureExtractor().configureHueHistogram(100)
-		pipeline.getClassifier().configureGaussianNBayes()
-		#pipeline.getClassifier().configureBayes()
-		
 		start = time.time()
-		acc, std = pipeline.KFoldCrossValidate()
-		print("Mean score: {0:.3f} (+/-{1:.3f})".format(acc, std))
-		end=time.time()
-		print 'Done in '+str(end-start)+' secs.'	
-		
-		values.append([feats, acc, std, end-start])
-		
-	return values
+		clfGrid = pipeline.KFoldCrossValidate(clf_params, clf_type, feat_type, feats)
+		bestParamsValue = clfGrid.best_params_
+		bestParamsScore = clfGrid.best_score_
+		print("CV Best score for clf 'KNN' with feats 'HOG': {0:.3f} with params %s)".format(bestParamsScore,
+																							 bestParamsValue))
+		end = time.time()
+		print 'Done in ' + str(end - start) + ' secs.'
 
-def testSIFT_MultinomialNBayes():
-	pipeline = M3S1_Pipeline()
+		# see (*) above referring 'values'
+		values.append([feats, bestParamsValue, bestParamsScore, end - start])
 
-	values = []
-	for feats in range(20,201,20):
-		pipeline.getFeatureExtractor().configureSIFT(feats)
-		#pipeline.getFeatureExtractor().configureHueHistogram(100)
-		pipeline.getClassifier().configureMultinomialNBayes()
-		#pipeline.getClassifier().configureBayes()
-		
-		start = time.time()
-		acc, std = pipeline.KFoldCrossValidate()
-		print("Mean score: {0:.3f} (+/-{1:.3f})".format(acc, std))
-		end=time.time()
-		print 'Done in '+str(end-start)+' secs.'	
-		
-		values.append([feats, acc, std, end-start])
-		
-	return values
+	# Call plot function if enabled
+	print 'The CV Grid has been successfully computed...'
+	if plotCV:
+		plotCV_results(CV_grid=clfGrid, feat_type=feat_type, clf_type=clf_type)
+	else:
+		print 'Cross Validation operations completed. Exiting function...'
 
-def testSIFT_RandomForest():
-	values = []
-	for feats in range(20,201,20):
-		pipeline = M3S1_Pipeline()
-		pipeline.getFeatureExtractor().configureSIFT(feats)
-		#pipeline.getFeatureExtractor().configureHueHistogram(100)
-		pipeline.getClassifier().configureRandomForest()
-		#pipeline.getClassifier().configureBayes()
-		
-		start = time.time()
-		acc, std = pipeline.KFoldCrossValidate()
-		print("Mean score: {0:.3f} (+/-{1:.3f})".format(acc, std))
-		end=time.time()
-		print 'Done in '+str(end-start)+' secs.'	
-		
-		values.append([feats, acc, std, end-start])
-		
-	return values
+	# Return 'clfGrid' in case we need it afterwards
+	return clfGrid
 
-def testHOG_KNN():
-	values = []
-	for scale in [1,2,4,8,16]:
-		pipeline = M3S1_Pipeline()
-		pipeline.getFeatureExtractor().configureHOG(scale)
-		#pipeline.getFeatureExtractor().configureHueHistogram(100)
-		#pipeline.getClassifier().configureRandomForest()
-		pipeline.getClassifier().configureKNN(8,-1)
-		
-		start = time.time()
-		acc, std = pipeline.KFoldCrossValidate()
-		print("Mean score: {0:.3f} (+/-{1:.3f})".format(acc, std))
-		end=time.time()
-		print 'Done in '+str(end-start)+' secs.'	
-		
-		values.append([scale, acc, std, end-start])
-		
-	return values
+# Define a function to plot the cross-validation results
+def plotCV_results(CV_grid, feat_type, clf_type):
+	# 1st: print summary to screen
+	print "Printing best CV results..."
+	print "Feat. type: {!s}; Clf. type: {!s}".format(feat_type,clf_type)
 
+	print("Best parameters set found on development set:")
+	print()
+	print(CV_grid.best_params_)
+	print()
+	print("Grid scores on development set:")
+	print()
+	means = CV_grid.cv_results_['mean_test_score']
+	stds = CV_grid.cv_results_['std_test_score']
+	for mean, std, params in zip(means, stds, CV_grid.cv_results_['params']):
+		print("%0.3f (+/-%0.03f) for %r"
+			  % (mean, std * 2, params))
+	print()
 
-testHOG_KNN()
+	# 2nd: generate graph with the results
+	print "Plotting CV results...(to be implemented)"
+
+if __name__ == "__main__":
+	# main of this function
+	print "Executing cross_val.py..."
+
+# change 'num' value (top) to run routine number 'num'. Mappings:
+#	'num' value			routine
+#	  0					SIFT+KNN
+#	  1					HueHist+KNN
+#     2					HOG+KNN
+#	  3					SIFT+GaussBayes
+#	  4					HueHist+GaussBayes
+#	  5					HOG+GaussBayes
+#	  6					SIFT+MultinomialBayes
+#	  7					HueHist+MultinomialBayes
+# 	  8					HOG+MultinomialBayes
+#	  9					SIFT+RandomForests
+#	 10    				HueHist+RandomForests
+#	 11					HOG+RandomForests
+#	 12					SIFT+SVM
+#	 13					HueHist+SVM
+#	 14					HOG+SVM
+
+# Execute 'num' scheme ('num' is defined at the top)
+	test_scheme(num)

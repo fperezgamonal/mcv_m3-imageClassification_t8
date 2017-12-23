@@ -17,7 +17,7 @@ class ImageFeatureExtractor:
 
 	#initialize vars
 	def __init__(self, type, recordData = False, useRecordedData = False, recordedDataName = ''):
-		print 'Hello'
+		print 'Initializing environment...'
 		self.__configured = False
 		self.__type = type
 		self.__descriptor = None
@@ -36,16 +36,15 @@ class ImageFeatureExtractor:
 		#assert(not self.__configured)
 
 		try:
-			print 'cv3'
+			print 'Using opencv: cv3'
 			self.__descriptor = cv2.xfeatures2d.SIFT_create(nfeatures=numFeatures)
 		except:
-			print 'cv2'
+			print 'Using opencv: cv2'
 			self.__descriptor = cv2.SIFT(nfeatures=numFeatures)
 			
 		self.__configured = True
 		self.__type = 'SIFT'
-		
-		
+
 	def configureHOG(self, scale):#numBins=9):
 		#assert(not self.__configured)
 		

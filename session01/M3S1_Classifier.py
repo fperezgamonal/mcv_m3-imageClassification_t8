@@ -3,7 +3,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn import datasets
 from sklearn.naive_bayes import GaussianNB, MultinomialNB
 from sklearn.ensemble import RandomForestClassifier
-from sklearn import svm
+from sklearn.svm import SVC
 
 # Classifier class that encapsulates a generic classifier
 # An instance of this class is expected to be configured first in order
@@ -47,23 +47,9 @@ class Classifier:
 		self.__configured = True
 
 	def configureSVM(self, C, gamma, kernel):
-
 		# Create and configure SVM
-		if kernel == 0:
-			kernel_str = 'linear'
-		elif kernel == 1:
-			kernel_str = 'rbf'
-		elif kernel == 2:
-			kernel_str = 'sigmoid'
-		else:
-			kernel_str = 'rbf'
-
-		self.__classifier = svm.SVC(C=C, kernel=kernel_str, degree=3, gamma=gamma,
-									coef0=0.0, shrinking=True, probability=False,
-									tol=1e-3, cache_size=200, class_weight=None,
-									verbose=False, max_iter=-1, decision_function_shape='ovr',
-									random_state=None)
-
+		self.__classifier = SVC(C=C, kernel=kernel, gamma=gamma,
+								probability=False)
 		# Set 'flags'
 		self.__configured = True
 		
