@@ -17,7 +17,14 @@ print 'Loaded '+str(len(train_images_filenames))+' training images filenames wit
 print 'Loaded '+str(len(test_images_filenames))+' testing images filenames with classes ',set(test_labels)
 
 # create the SIFT detector object
-SIFTdetector = cv2.SIFT(nfeatures=300)
+#SIFTdetector = cv2.SIFT(nfeatures=300)
+
+try:
+	print 'Using opencv: cv3'
+	SIFTdetector = cv2.xfeatures2d.SIFT_create(nfeatures=300)
+except:
+	print 'Using opencv: cv2'
+	SIFTdetector = cv2.SIFT(nfeatures=300)
 
 # extract SIFT keypoints and descriptors
 # store descriptors in a python list of numpy arrays
