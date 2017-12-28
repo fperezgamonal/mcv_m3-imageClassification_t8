@@ -14,10 +14,10 @@ import cv2
 # Compute training descriptors
 def computeTraining_descriptors(D_type, D_prm, train_imgs_filenames, train_labels):
 	# Check that we have not computed these features before
-	root_folder = "PreComputed_Params/Features/"
+	root_folder = os.path.join(os.pardir,"PreComputed_Params/Features/")
 	feat_filename = root_folder + "features_train_" + D_type +\
 		"_" + str(D_prm) + ".pkl"
-	feat_filename = os.path.join(os.pardir, feat_filename)
+	feat_filename = feat_filename
 	if os.path.isfile(feat_filename):
 		# Load features
 		print "Loading features from disk..."
