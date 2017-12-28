@@ -7,30 +7,71 @@ import os.path
 import cPickle
 import numpy as np
 import cv2
+from sklearn.decomposition import PCA
 
 # create the SIFT detector object
 #SIFTdetector = cv2.SIFT(nfeatures=300)
 
+# Compute keypoint grid for MultiScale Dense SIFT (only once)
+def computeKeypoint_MSDenseSIFT(D_prm, img_width, img_height):
+	# Below, a naive approach to multiscale SIFT (very computationally expensive)
+	# D_prm[0]: step
+	# D_prm[1]: num_scales
+	startSize = D_prm[0]
+	kpt = []
+	x = xrange(D_prm[0], img_width, D_prm[0])
+	y = xrange(D_prm[0], img_height, D_prm[0])
+	z = xrange(startSize, D_prm[0] * D_prm[1], startSize)
+	XX, YY, ZZ = np.meshgrid(x, y, z, indexing='ij')
+	XX_f = XX.flatten()
+	YY_f = YY.flatten()
+	ZZ_f = ZZ.flatten()
+	# for i in xrange(D_prm, gray.shape[0], D_prm):
+	#	for j in xrange(D_prm, gray.shape[1], D_prm):
+	#		for k in xrange(startSize, D_prm * num_scales, startSize):
+	#
+	for i in xrange(0, len(XX_f)):
+		kpt.append(cv2.KeyPoint(float(XX_f[i]), float(YY_f[i]), float(ZZ_f[i])))
+
+	return kpt
+
 # Compute training descriptors
-def computeTraining_descriptors(D_type, D_prm, train_imgs_filenames, train_labels):
+def computeTraining_descriptors(D_type, D_prm, train_imgs_filenames, train_labels, PCA_on, num_cols):
 	# Check that we have not computed these features before
-	root_folder = "PreComputed_Params/Features/"
-	feat_filename = root_folder + "features_train_" + D_type +\
-		"_" + str(D_prm) + ".pkl"
-	feat_filename = os.path.join(os.pardir, feat_filename)
+	root_folder = os.path.join(os.pardir, "PreComputed_Params/Features/")
+	if D_type == "Dense_SIFT":
+		num_scales = 5
+		feat_filename = root_folder + "features_train_" + D_type +\
+			"_" + str(D_prm[0]) + "_" + str(num_scales) + ".pkl"
+		D_prm = np.append(D_prm, num_scales)
+	else:
+		feat_filename = root_folder + "features_train_" + D_type +\
+			"_" + str(D_prm[0]) + ".pkl"
+
 	if os.path.isfile(feat_filename):
 		# Load features
 		print "Loading features from disk..."
 		start = time.time()
-		D, train_descriptors = cPickle.load(open(feat_filename, "r"))
+		D, Train_descriptors = cPickle.load(open(feat_filename, "r"))
+		# Loaded descriptors (after PCA)
 		end = time.time()
 		print "Features loaded successfully in " + str(end-start) + " secs."
-		# return as stacked numpy array 'D' and matrix 'train_descriptors' (for k-means, etc.)
-		return D, train_descriptors
+		if D_type == "Dense_SIFT":
+			tmp_im = cv2.imread(train_imgs_filenames[0])
+			kpt = computeKeypoint_MSDenseSIFT(D_prm, tmp_im.shape[0],
+									  tmp_im.shape[1])
+			D_prm = kpt
+		return D, Train_descriptors, D_prm
 	else:
 		#  Compute and store descriptors in a python list of numpy arrays
 		print "Computing and storing descriptors..."
 		start = time.time()
+		if D_type == "Dense_SIFT":
+			tmp_im = cv2.imread(train_imgs_filenames[0])
+			kpt = computeKeypoint_MSDenseSIFT(D_prm, tmp_im.shape[0],
+											  tmp_im.shape[1])
+			D_prm = kpt
+
 		Train_descriptors = []
 		Train_label_per_descriptor = []
 		for i in range(len(train_imgs_filenames)):
@@ -55,10 +96,20 @@ def computeTraining_descriptors(D_type, D_prm, train_imgs_filenames, train_label
 			# Create folder
 			os.mkdir(root_folder)
 
+		if PCA_on:
+			# Save features after PCA to save space
+			D = reduceDimensionality_PCA(D, num_cols)
+
+			i = 0
+			for mtx in Train_descriptors:
+				# Apply PCA to reduce dimension
+				Train_descriptors[i] = reduceDimensionality_PCA(mtx, num_cols)
+				i += 1
+
 		cPickle.dump([D, Train_descriptors], open(feat_filename, "wb"))
 		end = time.time()
 		print "Features computed and stored in " + str(end-start) + " secs."
-		return D, Train_descriptors
+		return D, Train_descriptors, D_prm
 
 # Compute a descriptor image per image (used in test)
 def compute_imgDescriptor(img, D_type, D_prm):
@@ -71,38 +122,27 @@ def compute_imgDescriptor(img, D_type, D_prm):
 
 		kpt, des = sift.detectAndCompute(gray, None)
 
+		# Reduce the descriptor's dimensionality by using PCA
+
+
 	# NOTE: for now we are trying a naive implementation by defining and iterating the grid
 	# ourselves (opencv 3 does not support Dense SIFT out of the box. VLFeat is faster (in
 	# case this is very slow)
 	# We select 5 scales as suggested in this paper (8, 16, 24, 32 and 40): https://goo.gl/srof24
 
 	elif D_type == "Dense_SIFT":		# D_prm is the step between the grid points
-		num_scales = 5
-		startSize = D_prm		# equal to the step size
+		# pass the grid directly (we only need to compute it ONCE!!)
+		# num_scales = 5
+		# startSize = D_prm		# equal to the step size
+		kpt = D_prm
 		gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 		try:
 			sift = cv2.xfeatures2d.SIFT_create()
 		except:
 			sift = cv2.SIFT()
-		#kpt = [cv2.KeyPoint(x, y, D_prm) for y in range(0, gray.shape[0], D_prm)
-		#	   							 for x in range(0, gray.shape[1], D_prm)]
-		# Dense SIFT is equal to:
-
-		#des = sift.compute(gray, kpt)
-		# Above implementation only contained Dense SIFT w/o multiscale.
-		# Below, a naive approach to multiscale SIFT (very computationally expensive)
-		kpt = []
-		start = time.time()
-		for i in xrange(D_prm, gray.shape[0], D_prm):
-			for j in xrange(D_prm, gray.shape[1], D_prm):
-				for k in xrange(startSize, D_prm * num_scales, startSize):
-					kpt.append(cv2.KeyPoint(float(i), float(j), float(k)))
 
 		# Multi-scale SIFT
-		kpt, des = sift.compute(gray, kpt)
-		end = time.time()
-		print "DEBUG: time spent computing 1 images multi-scale Dense SIFT features: " +\
-			str(end-start) + " secs."
+		_, des = sift.compute(gray, kpt)
 
 
 	elif D_type == "FisherVectors":
@@ -112,3 +152,11 @@ def compute_imgDescriptor(img, D_type, D_prm):
 		sys.exit("Invalid descriptor type string in function 'compute_imgDescriptor' (features.py)")
 
 	return kpt, des
+
+def reduceDimensionality_PCA(descriptors, SIFT_cols):
+	# Reduce the 128 original cols in the SIFT/DenseSIFT
+	#  to 'SIFT_cols' columns.
+	pca = PCA(n_components=SIFT_cols)
+	descriptors_out = pca.fit_transform(descriptors)
+
+	return descriptors_out

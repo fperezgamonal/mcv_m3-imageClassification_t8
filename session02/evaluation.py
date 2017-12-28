@@ -68,7 +68,59 @@ def plotConfusionMatrix(cm, y_true):
 # and number of clusters (BoVW)
 #   - One 3D plot of accuracy vs C, gamma
 #       (other params fixed)
+
+def CVPlot_SVM(CV_grid, clf_params):
+    print "The best classifier is: " + CV_grid.best_estimator_
+
+    # Mappings from clf_params to actual params
+    # (in case we want to add more)
+    C_range = clf_params['C']
+    gamma_range = clf_params['gamma']
+    # kernel_type = clf_params['kernel']
+
+    # Plot scores and parameters settings (C and gamma)
+    score_dict = CV_grid.grid_scores_
+
+    # We extract just the scores
+    scores = CV_grid.cv_results_['mean_test_score'].reshape(len(C_range),
+                                                         len(gamma_range))
+
+    # Make a nice figure
+
+    plt.figure(figsize=(8, 6))
+    plt.subplots_adjust(left=.2, right=0.95, bottom=0.15, top=0.95)
+    plt.imshow(scores, interpolation='nearest', cmap=plt.cm.hot)
+    plt.xlabel('gamma')
+    plt.ylabel('C')
+    plt.title("Cross-validation accuracy as a function of (C, gamma)")
+    plt.colorbar()
+    plt.xticks(np.arange(len(gamma_range)), gamma_range, rotation=45)
+    plt.yticks(np.arange(len(C_range)), C_range)
+    plt.title('Validation accuracy')
+    plt.show()
+
+# For both plots below we have to save the model results or simply
+# pass in a vector of scores.
 #   - One 3D plot of accuracy vs scale and step
 #       ( " " " )
 #   - One 2D plot of accuracy vs num_centroids
 #       ( " " " )
+
+
+def printCV_resultSummary(CV_grid, feat_type):
+	# 1st: print summary to screen
+	print "Printing best CV results..."
+	print "Feat. type: {!s}; Clf. type: SVM".format(feat_type)
+
+	print("Best parameters set found on development set:")
+	print()
+	print(CV_grid.best_params_)
+	print()
+	print("Grid scores on development set:")
+	print()
+	means = CV_grid.cv_results_['mean_test_score']
+	stds = CV_grid.cv_results_['std_test_score']
+	for mean, std, params in zip(means, stds, CV_grid.cv_results_['params']):
+		print("%0.3f (+/-%0.03f) for %r"
+			  % (mean, std * 2, params))
+	print()
