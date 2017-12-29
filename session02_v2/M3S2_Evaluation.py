@@ -39,20 +39,20 @@ class Evaluation:
 		return accuracy
 
 	# Precision
-	def precision(self):
+	#def precision(self):
 	#	return precision_score(self.__test_labels, self.__predictedclass, average='weighted')
 		
 	# Recall
-	def recall(self):
+	#def recall(self):
 	#	return recall_score(self.__test_labels, self.__predictedclass, average='weighted')
 		
 	# F1 Score
-	def f1Score(self):
+	#def f1Score(self):
 	#	return f1_score(self.__test_labels, self.__predictedclass, average='weighted')
 		
 	# Confusion Matrix
 	def confMatrix(self):
-	#	cm = confusion_matrix(self.__test_labels, self.__predictedclass)
+		cm = confusion_matrix(self.__test_labels, self.__predictedclass)
 		
 		return cm
 
