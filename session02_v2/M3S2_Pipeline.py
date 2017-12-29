@@ -20,7 +20,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 
 # Pipeline class to model the different stages of our solutions
-class M3S2_Pipeline:
+class Pipeline:
 	__slots__=['__featureExtractor', '__classifier', '__evaluation']
 
 	def __init__(self, recordData=False, useRecordedData=False, recordedDataName=''):

@@ -3,7 +3,7 @@ import time
 import sys
 import os.path
 import numpy as np
-from M3S1_Pipeline import M3S1_Pipeline
+from M3S2_Pipeline import Pipeline
 
 # NOTE: this script is practically identical to cross_val.py but
 # w/o looping through params or calling KFoldCrossValidate...
@@ -129,7 +129,7 @@ def test_scheme(scheme):
 	# Common commands (main loop for CV)
 	print 'Main run w. feat_type={!s} & clf_type={!s}...'.format(feat_type,clf_type)
 
-	pipeline = M3S1_Pipeline()
+	pipeline = Pipeline()
 
 	values = []		# * not returned or saved. Consider deletion
 
