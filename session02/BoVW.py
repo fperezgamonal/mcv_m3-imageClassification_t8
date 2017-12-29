@@ -23,15 +23,23 @@ import time
 import numpy as np
 import cv2
 from sklearn import cluster
-from sklearn.decomposition import PCA
 from features import compute_imgDescriptor, reduceDimensionality_PCA
 
 # compute the codebook
-def computeCodebook(numClusters, descriptors, D_type, D_prm):       # to start num_clusters was 512
+def computeCodebook(numClusters, descriptors, D_type, D_prm, PCA_on):       # to start num_clusters was 512
 	# Check if we have already computed this codebook
 	root_folder = os.path.join(os.pardir, "PreComputed_Params/Codebooks/")
-	CB_filename = root_folder + "codebook_k" + str(numClusters) + "-"\
-				  + D_type + "_" + str(D_prm[0]) + ".dat"
+	if D_type == 'Dense_SIFT':
+		num_scales = 5
+		D_prm = np.append(D_prm, num_scales)
+
+	if PCA_on:
+		CB_filename = root_folder + "codebook_k" + str(numClusters) + "-" \
+					  + D_type + "_" + str(D_prm[0]) + "_PCAon_" +\
+					  str(PCA_on) + ".dat"
+	else:
+		CB_filename = root_folder + "codebook_k" + str(numClusters) + "-"\
+					  + D_type + "_" + str(D_prm[0]) + ".dat"
 	#CB_filename = os.path.join(os.pardir, CB_filename)
 
 	if os.path.isfile(CB_filename):
@@ -68,7 +76,6 @@ def getBoVW_train(codebook, numClusters, train_descriptors):
 	initBT = time.time()
 	visual_words = np.zeros((len(train_descriptors),numClusters),dtype=np.float32)
 	for i in xrange(len(train_descriptors)):
-		print str(i)
 		words = codebook.predict(train_descriptors[i])
 		visual_words[i,:] = np.bincount(words,minlength=numClusters)
 	endBT = time.time()
