@@ -94,7 +94,7 @@ class ImageFeatureExtractor:
 		else:
 			ima=cv2.imread(filename)
 			gray=cv2.cvtColor(ima,cv2.COLOR_BGR2GRAY)
-	
+			
 			if self.__type == 'SIFT':
 				kpt,des = self.__descriptor.detectAndCompute(gray,None)
 				print str(len(kpt))+' '+str(len(des))+' extracted keypoints and descriptors'
