@@ -181,7 +181,7 @@ class M3S2_Pipeline:
 		 
 		# get train visual word encoding
 		print 'Getting Train BoVW representation'#
-		self.__classifier.BagOfWords(k, Train_descriptors):
+		self.__classifier.BagOfWords(k, Train_descriptors)
 		
 		# train ...
 		
@@ -223,7 +223,7 @@ class M3S2_Pipeline:
 		test_images_filenames, test_labels = self.__readInput('test')
 		visual_words_test=np.zeros((len(test_images_filenames),k),dtype=np.float32)
 		for i in range(len(test_images_filenames)):
-			kpt, des = self.__featureExtractor.extractFeatures(test_images_filenames):
+			kpt, des = self.__featureExtractor.extractFeatures(test_images_filenames)
 			words=codebook.predict(des)
 			visual_words_test[i,:]=np.bincount(words,minlength=k)
 		
