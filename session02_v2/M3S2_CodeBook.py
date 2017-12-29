@@ -16,8 +16,8 @@ class CodeBook:		#compute the codebook
 	__slots__=['__k']
 
 	#initialize vars
-	def __init__(self, k):	
-		self.__k = k
+	def __init__(self):	
+		self.__k = None
 	
 	def CB (self):
 		print 'Computing kmeans with '+str(self.__k)+' centroids'
