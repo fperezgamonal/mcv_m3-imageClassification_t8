@@ -21,7 +21,7 @@ from sklearn.svm import SVC
 
 # Pipeline class to model the different stages of our solutions
 class Pipeline:
-	__slots__=['__featureExtractor', '__classifier', '__evaluation']
+	__slots__=['__featureExtractor', '__classifier', '__evaluation', '__codebook']
 
 	def __init__(self, recordData=False, useRecordedData=False, recordedDataName=''):
 		self.__featureExtractor = ImageFeatureExtractor("", recordData, useRecordedData, recordedDataName)
