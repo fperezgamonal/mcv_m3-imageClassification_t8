@@ -26,26 +26,41 @@ test_labels = cPickle.load(open('test_labels.dat','r'))
 print 'Loaded '+str(len(train_images_filenames))+' training images filenames with classes ',set(train_labels)
 print 'Loaded '+str(len(test_images_filenames))+' testing images filenames with classes ',set(test_labels)
 
+# create a sklearn.Pipeline
 pipe = Pipeline(steps=[
 		('descriptor', CodeBook()),
 		('scaler', StandardScaler()),
 		('classify', SVC())])
 
-params = dict(	descriptor__k=range(10,30,10),
+# parameters to cross-validate
+''' SIFT params
+params = dict(		descriptor__descType=["SIFT"],
 					descriptor__numFeatures=[300],
+					descriptor__k=[10],
+					classify__kernel=["rbf"],
+					classify__gamma= [.002],
+					classify__C=[1])
+'''
+
+params = dict(		descriptor__descType=["DenseSIFT"],
+			  		descriptor__step=[50],
+					descriptor__scales=[5],
+					descriptor__k=[10],
 					classify__kernel=["rbf"],
 					classify__gamma= [.002],
 					classify__C=[1])
 
 
-
+# Cross-validate
 start = time.time()
-grid = GridSearchCV(pipe, cv=2, n_jobs=1, param_grid=params)
+grid = GridSearchCV(pipe, cv=6, n_jobs=4, param_grid=params)
 grid.fit(train_images_filenames, train_labels)
 end = time.time()
 
+# save results in a file
 saveXVal(grid)
 
+# print results
 print(grid.best_params_)
 
 print("All done in ", str(end-start), " seconds.")

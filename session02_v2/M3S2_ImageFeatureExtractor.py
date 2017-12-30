@@ -33,6 +33,20 @@ class ImageFeatureExtractor:
 		self.__configured = True
 		self.__type = 'SIFT'
 
+	def configureDenseSIFT(self, step, scales):
+		self.__DSstep = step
+		self.__DSscales = scales
+		
+		try:
+			print 'Using opencv: cv3'
+			self.__descriptor = cv2.xfeatures2d.SIFT_create()
+		except:
+			print 'Using opencv: cv2'
+			self.__descriptor = cv2.SIFT()	
+			
+		self.__configured = True
+		self.__type = 'DenseSIFT'
+
 	def configureHOG(self, scale):#numBins=9):
 		#assert(not self.__configured)
 		
@@ -68,6 +82,30 @@ class ImageFeatureExtractor:
 	def isConfigured(self):
 		return self.__configured
 
+	# Compute keypoint grid for MultiScale Dense SIFT (only once)
+	def __computeKeypoint_MSDenseSIFT(self, img_width, img_height):
+		# Below, a naive approach to multiscale SIFT (very computationally expensive)
+		step = self.__DSstep
+		scales = self.__DSscales
+		startSize = step
+		kpt = []
+		x = xrange(step, img_width, step)
+		y = xrange(step, img_height, step)
+		z = xrange(startSize, step * scales, startSize)
+		XX, YY, ZZ = np.meshgrid(x, y, z, indexing='ij')
+		XX_f = XX.flatten()
+		YY_f = YY.flatten()
+		ZZ_f = ZZ.flatten()
+		# for i in xrange(D_prm, gray.shape[0], D_prm):
+		#	for j in xrange(D_prm, gray.shape[1], D_prm):
+		#		for k in xrange(startSize, D_prm * num_scales, startSize):
+		#
+		for i in xrange(0, len(XX_f)):
+			kpt.append(cv2.KeyPoint(float(XX_f[i]), float(YY_f[i]), float(ZZ_f[i])))
+	
+		return kpt
+
+
 	# Extracts features of an image given a file path
 	def extractFeatures(self, filename):
 		#assert(self.__configured)
@@ -80,6 +118,9 @@ class ImageFeatureExtractor:
 		if self.__type == 'SIFT':
 			kpt,des = self.__descriptor.detectAndCompute(gray,None)
 			print str(len(kpt))+' '+str(len(des))+' extracted keypoints and descriptors'
+		elif self.__type == "DenseSIFT":
+			kpt = self.__computeKeypoint_MSDenseSIFT(ima.shape[0], ima.shape[1])
+			_, des = self.__descriptor.compute(gray, kpt)
 		elif self.__type == 'HOG':
 			#winStride = (8,8)
 			#padding = (8,8)
