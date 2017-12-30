@@ -44,7 +44,7 @@ grid = GridSearchCV(pipe, cv=2, n_jobs=1, param_grid=params)
 grid.fit(train_images_filenames, train_labels)
 end = time.time()
 
-saveXVal()
+saveXVal(grid)
 
 print(grid.best_params_)
 
