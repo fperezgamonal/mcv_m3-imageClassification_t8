@@ -1,12 +1,8 @@
 #!/usr/bin/env python2
 import cv2
 import numpy as np
-import os
-import cPickle
 #from sklearn.lda import LDA
 from sklearn.decomposition import PCA
-from sklearn import svm
-from sklearn import cluster
 
 # ImageFeatureExtractor class encapsulates the functionality of extracting
 # features from images using several image descriptors.
@@ -15,35 +11,25 @@ from sklearn import cluster
 # After configuration we can extractFeatures() from an image by passing its
 # path by argument
 class ImageFeatureExtractor:
-	_slots__=['__configured', '__type', '__descriptor', '__hueHistogramBins','__recordData', '__useRecordedData', '__recordedDataName']
+	_slots__=['__configured', '__type', '__descriptor', '__hueHistogramBins']
 
 	#initialize vars
-	def __init__(self, type, recordData = False, useRecordedData = False, recordedDataName = ''):
+	def __init__(self, type):
 		print 'Initializing environment...'
 		self.__configured = False
 		self.__type = type
 		self.__descriptor = None
-		self.__recordData = recordData
-		self.__useRecordedData = useRecordedData
-		self.__recordedDataName = recordedDataName
-
 		
-		if self.__recordData:
-			if not os.path.isdir('../../Databases/FeatureCache'):
-				os.mkdir('../../Databases/FeatureCache')
-			if not os.path.isdir('../../Databases/FeatureCache'+'/'+self.__recordedDataName):
-				os.mkdir('../../Databases/FeatureCache'+'/'+self.__recordedDataName)
-				
 	def configureSIFT(self, numFeatures):
 		#assert(not self.__configured)
-
+		
 		try:
 			print 'Using opencv: cv3'
-			SIFTdetector = cv2.xfeatures2d.SIFT_create(nfeatures=300)
+			self.__descriptor = cv2.xfeatures2d.SIFT_create(nfeatures=numFeatures)
 		except:
 			print 'Using opencv: cv2'
-			SIFTdetector = cv2.SIFT(nfeatures=300)
-			
+			self.__descriptor = cv2.SIFT(nfeatures=numFeatures)	
+		
 		self.__configured = True
 		self.__type = 'SIFT'
 
@@ -68,6 +54,7 @@ class ImageFeatureExtractor:
 
 		self.__configured = True
 		self.__type = 'HOG'
+		self.__paramStr = "???"
 
 	def configureHueHistogram(self, bins):
 		#assert(not self.__configured)
@@ -86,32 +73,24 @@ class ImageFeatureExtractor:
 		#assert(self.__configured)
 		kpt = None
 		des = None
-		path = "../../Databases/FeatureCache/" + self.__recordedDataName + "/" + os.path.basename(filename) + "_" + self.__type + ".p"
-		
-		if self.__useRecordedData:
-			des = cPickle.load( open( path, "rb" ) )
-			print str(len(des))+' extracted descriptors from '+path
-		else:
-			ima=cv2.imread(filename)
-			gray=cv2.cvtColor(ima,cv2.COLOR_BGR2GRAY)
-			
-			if self.__type == 'SIFT':
-				kpt,des = self.__descriptor.detectAndCompute(gray,None)
-				print str(len(kpt))+' '+str(len(des))+' extracted keypoints and descriptors'
-			elif self.__type == 'HOG':
-				#winStride = (8,8)
-				#padding = (8,8)
-				#locations = ((10,20),)
-				#downscaled_ima = cv2.resize(ima, (self.__hogWinSize, self.__hogWinSize), interpolation=cv2.INTER_AREA)
-				des = self.__descriptor.compute(ima) #,winStride,padding,locations)
-			elif self.__type == 'HUEHIST':
-				hsv = cv2.cvtColor(ima, cv2.COLOR_BGR2HSV)
-				h,s,v = cv2.split(hsv)
-				hist,bins = np.histogram(h.ravel(), self.__hueHistogramBins, density=True)
-				des = np.array([hist])
 
-		if self.__recordData:
-			cPickle.dump( des, open(path, "w+b" ) )
+		ima=cv2.imread(filename)
+		gray=cv2.cvtColor(ima,cv2.COLOR_BGR2GRAY)
+		
+		if self.__type == 'SIFT':
+			kpt,des = self.__descriptor.detectAndCompute(gray,None)
+			print str(len(kpt))+' '+str(len(des))+' extracted keypoints and descriptors'
+		elif self.__type == 'HOG':
+			#winStride = (8,8)
+			#padding = (8,8)
+			#locations = ((10,20),)
+			#downscaled_ima = cv2.resize(ima, (self.__hogWinSize, self.__hogWinSize), interpolation=cv2.INTER_AREA)
+			des = self.__descriptor.compute(ima) #,winStride,padding,locations)
+		elif self.__type == 'HUEHIST':
+			hsv = cv2.cvtColor(ima, cv2.COLOR_BGR2HSV)
+			h,s,v = cv2.split(hsv)
+			hist,bins = np.histogram(h.ravel(), self.__hueHistogramBins, density=True)
+			des = np.array([hist])
 
 		return kpt, des
 
