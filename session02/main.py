@@ -13,13 +13,23 @@
 import cPickle
 import numpy as np
 import time
-from features import computeTraining_descriptors, reduceDimensionality_PCA
+from features import computeTraining_descriptors
 from BoVW import computeCodebook, getBoVW_train, getBoVW_test
 from classifier import clf_train, clf_predict
 from sklearn.metrics import accuracy_score
 
 # Define general variables and select the scheme to run with 'num':
 num_scheme = 0
+# Initialise variables to 'scheme'-specific values
+if num_scheme == 0:
+    D_type = "SIFT"
+    D_param = np.array([300])
+elif num_scheme == 1:
+    D_type = "Dense_SIFT"
+    D_param = np.array([8]) # this is the step in pixels in between two SIFT descriptors
+elif num_scheme == 2:
+    D_type = "FisherVectors"
+    D_param = np.array([8])  # the number of GMMs used
 # Codebook
 n_clusters = 512
 # SVM
@@ -28,27 +38,18 @@ gma = 0.002
 krnl = 'rbf'
 # Evaluation
 plotGraph = True
-PCA_on = True
+PCA_on = False
+if PCA_on:
+    n_cols = 64
+else:
+    n_cols = 128
 
-
-def run_scheme(scheme, num_clusters, C, gamma, kernel, plotGraphs, PCA):
+def run_scheme(scheme, descriptor_type, descriptor_param,
+               num_clusters, C, gamma, kernel, plotGraphs, PCA, num_cols):
     print "Running scheme with the following parameters: "
     print "Scheme num: " + str(scheme) + ", BoVW: num_clusters=" + str(num_clusters) +\
         "; SVM: C=" + str(C) + ", gamma=" + str(gamma) + ", kernel='" + kernel + "'" +\
         "; plotGraphs=" + str(plotGraphs) + "; PCA_on=" + str(PCA)
-    # Initialise variables to 'scheme'-specific values
-    if scheme == 0:
-        descriptor_type = "SIFT"
-        descriptor_param = np.array([300])
-    elif scheme == 1:
-        descriptor_type = "Dense_SIFT"
-        descriptor_param = np.array([16]) # this is the step in pixels in between two SIFT descriptors
-    elif scheme == 2:
-        descriptor_type = "FisherVectors"
-        descriptor_param = np.array([8])  # the number of GMMs used
-
-    if PCA:
-        num_cols = 64
     start = time.time()
 
     # 1) Read the train and test files
@@ -67,20 +68,10 @@ def run_scheme(scheme, num_clusters, C, gamma, kernel, plotGraphs, PCA):
 
     # 3) Reduce number of features by PCA (reducing m=128 cols)
     # <<< DONE INTERNALLY TO AVOID PROBLEMS WHEN LOADING FROM DISK >>>
-    # descriptors_np = reduceDimensionality_PCA(descriptors_np, num_cols)
-    # ############ CHECK TRAIN_DESCRIPTORS DIMENSION, TO PROPERLY APPLY PCA
-    # i = 0
-    # for mtx in Train_descriptors:
-    #     # Apply PCA to reduce dimension
-    #     Train_descriptors[i] = reduceDimensionality_PCA(mtx, num_cols)
-    #     i += 1
-
-    # Store features (after PCA)
-    # cPickle.dump([descriptors_np, Train_descriptors], open(D_filename, "wb"))
 
     # 4) Compute codebook
     codebook = computeCodebook(num_clusters, descriptors_np, descriptor_type,
-                               descriptor_param)
+                               descriptor_param, PCA)
     # 5) Get training BoVW
     train_VW = getBoVW_train(codebook, num_clusters, Train_descriptors)
 
@@ -107,6 +98,9 @@ def run_scheme(scheme, num_clusters, C, gamma, kernel, plotGraphs, PCA):
     end=time.time()
     print 'Everything done in '+str(end-start)+' secs.'
     ### 69.02% (default script (BoVW with SIFT + SVM))
+    ### 83.89% MS Dense SIFT (huge model, ~9GBs of features)
+    ### 78.07% MS Dense SIFT (smaller step, <700MBs of features)
+    ###
 
 if __name__ == "__main__":
 	# main of this function
@@ -120,4 +114,5 @@ if __name__ == "__main__":
 #	  N                 (BoVW) routineXX
 
 # Execute 'num' scheme ('num' is defined at the top)
-	run_scheme(num_scheme, n_clusters, cost, gma, krnl, plotGraph, PCA_on)
+	run_scheme(num_scheme, D_type, D_param, n_clusters,
+               cost, gma, krnl, plotGraph, PCA_on, n_cols)

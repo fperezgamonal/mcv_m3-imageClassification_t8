@@ -10,8 +10,8 @@
 
 # FOR NOW: copied code related to features (so we can see in red needed imports,etc.)
 import time
-from features import computeTraining_descriptors
-from BoVW import computeCodebook, getBoVW_train
+import sys
+import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn import svm
 from sklearn.model_selection import StratifiedKFold
@@ -53,6 +53,8 @@ def KFoldCrossValidation(train_VW, train_labels, n_folds, clf_params):
     D_scaled = stdSlr.transform(train_VW)
     print "Done scaling features"
 
+    print "Initialising and performing K-fold Cross Validation..."
+    init = time.time()
     # Initialise stratifiedKFold and GridSearchCV
     kfolds = StratifiedKFold(n_splits=n_folds, shuffle=False, random_state=42)
     grid = GridSearchCV(svm.SVC(), param_grid=clf_params, cv=kfolds, scoring='accuracy',
@@ -61,4 +63,26 @@ def KFoldCrossValidation(train_VW, train_labels, n_folds, clf_params):
     # Start fitting all the combinations (N fits)
     grid.fit(D_scaled, train_labels)
 
+    end = time.time()
+    print "Finished K-fold Cross-validation. Done in " + str(end-init) + " secs."
     return stdSlr, grid
+
+# Histogram intersection (min)
+def histogramIntersection(M, N):
+    # Implementation of the "Histogram Intersection Kernel"
+    # K_int(M, N) = sum_{i=1}^m min{a_i, b_i}
+    # M, N histogram of images M_im and N_im
+    # m is the number of bins of M and N
+
+    m = M.shape[0]
+    n = N.shape[0]
+    if m != n:
+        sys.exit("'histogramIntersection': the n_bins of both histograms"
+                 " does not match")
+
+    # result = np.zeros((m, n))
+    result = 0
+
+    for i in range(m):
+        result += np.sum(np.minimum(M[i], N[i]))
+    return result

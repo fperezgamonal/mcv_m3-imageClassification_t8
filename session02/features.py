@@ -41,12 +41,23 @@ def computeTraining_descriptors(D_type, D_prm, train_imgs_filenames, train_label
 	root_folder = os.path.join(os.pardir, "PreComputed_Params/Features/")
 	if D_type == "Dense_SIFT":
 		num_scales = 5
-		feat_filename = root_folder + "features_train_" + D_type +\
-			"_" + str(D_prm[0]) + "_" + str(num_scales) + ".pkl"
 		D_prm = np.append(D_prm, num_scales)
+		if PCA_on:
+			feat_filename = root_folder + "features_train_" + D_type + \
+							"_" + str(D_prm[0]) + "_" + str(num_scales) +\
+							"_PCA=" + str(PCA_on) + ".pkl"
+		else:
+			feat_filename = root_folder + "features_train_" + D_type +\
+				"_" + str(D_prm[0]) + "_" + str(num_scales) + ".pkl"
+
 	else:
-		feat_filename = root_folder + "features_train_" + D_type +\
-			"_" + str(D_prm[0]) + ".pkl"
+		if PCA_on:
+			feat_filename = root_folder + "features_train_" + D_type + \
+							"_" + str(D_prm[0]) + "_PCA=" + str(PCA_on) +\
+							".pkl"
+		else:
+			feat_filename = root_folder + "features_train_" + D_type +\
+				"_" + str(D_prm[0]) + ".pkl"
 
 	if os.path.isfile(feat_filename):
 		# Load features
@@ -79,6 +90,7 @@ def computeTraining_descriptors(D_type, D_prm, train_imgs_filenames, train_label
 			print 'Reading image '+filename
 			ima = cv2.imread(filename)
 			kpt, des = compute_imgDescriptor(ima, D_type, D_prm)
+
 			Train_descriptors.append(des)
 			Train_label_per_descriptor.append(train_labels[i])
 			print str(len(kpt))+' extracted keypoints and descriptors'
@@ -156,7 +168,12 @@ def compute_imgDescriptor(img, D_type, D_prm):
 def reduceDimensionality_PCA(descriptors, SIFT_cols):
 	# Reduce the 128 original cols in the SIFT/DenseSIFT
 	#  to 'SIFT_cols' columns.
-	pca = PCA(n_components=SIFT_cols)
-	descriptors_out = pca.fit_transform(descriptors)
+	if descriptors.shape[1] < SIFT_cols:
+		print "Descriptor has fewer columns that target number: dimensionality not" \
+			  "reduced!"
+		return descriptors # do not alter the vector
+	else:
+		pca = PCA(n_components=SIFT_cols)
+		descriptors_out = pca.fit_transform(descriptors)
 
-	return descriptors_out
+		return descriptors_out
