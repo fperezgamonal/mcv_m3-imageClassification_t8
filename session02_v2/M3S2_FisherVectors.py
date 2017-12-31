@@ -142,11 +142,11 @@ class FisherVectors:
 		print "step 3"
 		# Now the FV can be used to compare images, so we compute for each Holidays query image the nearest images in the image_fvs matrix.
 		# RETUNS: 1) indices of the query images 2)int, classificació 3) float, distancia al cluster
-		query_imnos, results, distances = CompareImages(image_names, image_fvs)
+		#query_imnos, results, distances = CompareImages(image_names, image_fvs)
 		
 		#STEP 4
 		print "step 4"
 		# The mAP performance for this search can be computed as:
 		# RETUNS: mAP performance
-		mAP = mAPPerformance(image_names, query_imnos, results)
+		#mAP = mAPPerformance(image_names, query_imnos, results)
 		
