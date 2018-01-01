@@ -26,9 +26,20 @@ def f1score(y_true, y_pred):
 	return f1_score(y_true, y_pred, average='weighted')
 
 # Confusion matrix
-
 def confusionMatrix(y_true, y_pred):
 	return confusion_matrix(y_true, y_pred)
+
+def HitsAndMisses(cm):
+	#TP = 0
+	# for i in range(np.size(cm[0])):
+	# 	TP = TP + cm[i, i]
+	# self.__TP = TP
+	# TP = trace (sum of) matrix diagonal elements
+	TP = np.trace(cm) # a.k.a 'hits'
+	# FN a.k.a 'misses'
+	total = np.sum(cm)
+	FN = total - TP
+	return TP, FN
 
 # Plots
 # Confusion matrix
@@ -42,7 +53,7 @@ def plotConfusionMatrix(cm, y_true):
 			tmp_arr.append(float(j) / float(a))
 		norm_conf.append(tmp_arr)
 
-	fig = plt.figure()
+	fig = plt.figure(figsize=(8, 6))
 	plt.clf()
 	ax = fig.add_subplot(111)
 	ax.set_aspect(1)

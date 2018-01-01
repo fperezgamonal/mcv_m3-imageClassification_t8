@@ -67,22 +67,20 @@ def KFoldCrossValidation(train_VW, train_labels, n_folds, clf_params):
     print "Finished K-fold Cross-validation. Done in " + str(end-init) + " secs."
     return stdSlr, grid
 
-# Histogram intersection (min)
-def histogramIntersection(M, N):
+# Histogram intersection kernel (min)
+# Used to create gram(kernel) matrix and work with test data
+def histogramIntersectionKernelGramMatrix(M, N):
     # Implementation of the "Histogram Intersection Kernel"
     # K_int(M, N) = sum_{i=1}^m min{a_i, b_i}
+    # with a_i, b_i >= 0
     # M, N histogram of images M_im and N_im
     # m is the number of bins of M and N
+    kernel_matrix = np.zeros((M.shape[0], N.shape[0]))
 
-    m = M.shape[0]
-    n = N.shape[0]
-    if m != n:
-        sys.exit("'histogramIntersection': the n_bins of both histograms"
-                 " does not match")
+    for i, m in enumerate(M):
+        for j, n in enumerate(N):
+            m = m.flatten()
+            n = n.flatten()
+            kernel_matrix[i,j] = np.sum(np.minimum(m, n))
 
-    # result = np.zeros((m, n))
-    result = 0
-
-    for i in range(m):
-        result += np.sum(np.minimum(M[i], N[i]))
-    return result
+    return kernel_matrix

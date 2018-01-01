@@ -10,11 +10,11 @@ from classifier import KFoldCrossValidation
 from evaluation import CVPlot_SVM
 
 # Define general variables and select the scheme to run with 'num':
-num_scheme = 1
+num_scheme = 0
 # Initialise variables to 'scheme'-specific values
 if num_scheme == 0:
 	D_type = "SIFT"
-	D_param = np.array([50, 100, 150])
+	D_param = np.array([100, 200, 300])
 	print "With feature type: " + D_type
 elif num_scheme == 1:
 	D_type = "Dense_SIFT"
@@ -39,15 +39,15 @@ num_folds = 5
 # kernel = 'rbf'
 
 # Evaluation
-plotGraph = True
-PCA_on = False
+save_Grid = True
+PCA_on = False		# Not working properly (dimensions mismatch)
 if PCA_on:
 	n_cols = 64
 else:
 	n_cols = 128
 
 def run_scheme(scheme, descriptor_type, descriptor_param,
-			   num_clusters, clf_params, n_folds, plotGraphs, PCA, num_cols):
+			   num_clusters, clf_params, n_folds, saveGrid, PCA, num_cols):
 	print "Running cross-validation scheme number= ..." + str(scheme)
 
 
@@ -76,8 +76,8 @@ def run_scheme(scheme, descriptor_type, descriptor_param,
 			", D_param=" + str(descriptor_param)
 		print "We iterate through clf_params for each pair of" \
 			  " params (n_clust, D_prm)"
-		# 2) Extract train features (DO ONE PER COMBINATION OF FEAT_VALUES)
-		descriptors_np, Train_descriptors, kpt_dense = \
+		# 2) Extract train features
+		descriptors_np, Train_descriptors, kpt_dense, pca_train, sclr_train = \
 		computeTraining_descriptors(descriptor_type,
 									descriptor_param,
 									train_images_filenames, train_labels,
@@ -85,17 +85,10 @@ def run_scheme(scheme, descriptor_type, descriptor_param,
 
 		# 3) Reduce number of features by PCA (reducing m=128 cols)
 
-
-		# descriptors_np = reduceDimensionality_PCA(descriptors_np, num_cols)
-		# ############ CHECK TRAIN_DESCRIPTORS DIMENSION, TO PROPERLY APPLY PCA
-		# for mtx in Train_descriptors:
-		# 	# Apply PCA to reduce dimension
-		# 	Train_descriptors[mtx] = reduceDimensionality_PCA(Train_descriptors, num_cols)
-
-		# 4) Compute codebook (DO ONCE PER DIFFERENT NUM_CLUSTERS VALUE)
+		# 4) Compute codebook
 		codebook = computeCodebook(num_clusters, descriptors_np, descriptor_type,
 							   descriptor_param, PCA)
-		# 5) Get training BoVW (DO ONCE PER DIFFERENT COMBINATIONS OF FEAT AND CLUSTER VALUES)
+		# 5) Get training BoVW
 		train_VW = getBoVW_train(codebook, num_clusters, Train_descriptors)
 
 		# 6) Cross-validate SVM
@@ -108,17 +101,18 @@ def run_scheme(scheme, descriptor_type, descriptor_param,
 		print "Cross Validation: plotting accuracy vs (C, gamma)..."
 		CVPlot_SVM(CVGrid, clf_prms)
 
-		# Save CV_Grid
-		root_folder = os.path.join(os.pardir, "PreComputed_Params/CV-results/")
-		grid_filename = root_folder + "D_type=" + str(descriptor_type) +\
-			"_Dprm=" + str(descriptor_param) + "_nclusters=" +\
-			str(num_clusters) + "_PCAon=" + str(PCA) + ".pkl"
+		if saveGrid:
+			# Save CV_Grid
+			root_folder = os.path.join(os.pardir, "PreComputed_Params/CV-results/")
+			grid_filename = root_folder + "CVGrid-D_type=" + str(descriptor_type) +\
+				"_Dprm=" + str(descriptor_param) + "_nclusters=" +\
+				str(num_clusters) + "_PCAon=" + str(PCA) + ".pkl"
 
-		if not os.path.isdir(root_folder):
-			# Create folder
-			os.mkdir(root_folder)
+			if not os.path.isdir(root_folder):
+				# Create folder
+				os.mkdir(root_folder)
 
-		cPickle.dump([CVGrid], open(grid_filename, "wb"))
+			cPickle.dump([CVGrid], open(grid_filename, "wb"))
 		# 8) Once this script has finished execution, re-train the best
 		#  classifier with the whole training set (using main.py w.
 		#  the updated params).
@@ -133,8 +127,9 @@ if __name__ == "__main__":
 #	'num' value			routine
 #	  0					(BoVW) SIFT + SVM
 #	  1					(BoVW) Dense SIFT + SVM
-#     2					(BoVW) Fisher Vectors + SVM
+#	  2					(BoVW) SIFT + Spatial Pyramids + SVM
+#     3					(BoVW) Fisher Vectors + SVM
 #	  N                 (BoVW) routineXX
 
 # Execute 'num' scheme ('num' is defined at the top)
-	run_scheme(num_scheme, D_type, D_param, n_clusters, clf_prms, num_folds, plotGraph, PCA_on, n_cols)
+	run_scheme(num_scheme, D_type, D_param, n_clusters, clf_prms, num_folds, save_Grid, PCA_on, n_cols)

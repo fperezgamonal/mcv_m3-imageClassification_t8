@@ -8,9 +8,7 @@ import cPickle
 import numpy as np
 import cv2
 from sklearn.decomposition import PCA
-
-# create the SIFT detector object
-#SIFTdetector = cv2.SIFT(nfeatures=300)
+from sklearn.preprocessing import StandardScaler
 
 # Compute keypoint grid for MultiScale Dense SIFT (only once)
 def computeKeypoint_MSDenseSIFT(D_prm, img_width, img_height):
@@ -37,42 +35,61 @@ def computeKeypoint_MSDenseSIFT(D_prm, img_width, img_height):
 
 # Compute training descriptors
 def computeTraining_descriptors(D_type, D_prm, train_imgs_filenames, train_labels, PCA_on, num_cols):
-	# Check that we have not computed these features before
+	# 1) Define root folder and filename to store features
 	root_folder = os.path.join(os.pardir, "PreComputed_Params/Features/")
-	if D_type == "Dense_SIFT":
-		num_scales = 5
-		D_prm = np.append(D_prm, num_scales)
-		if PCA_on:
+	if PCA_on:
+		if D_type == "Dense_SIFT":
+			num_scales = 5
+			D_prm = np.append(D_prm, num_scales)
 			feat_filename = root_folder + "features_train_" + D_type + \
 							"_" + str(D_prm[0]) + "_" + str(num_scales) +\
 							"_PCA=" + str(PCA_on) + ".pkl"
 		else:
-			feat_filename = root_folder + "features_train_" + D_type +\
-				"_" + str(D_prm[0]) + "_" + str(num_scales) + ".pkl"
-
-	else:
-		if PCA_on:
 			feat_filename = root_folder + "features_train_" + D_type + \
 							"_" + str(D_prm[0]) + "_PCA=" + str(PCA_on) +\
 							".pkl"
-		else:
-			feat_filename = root_folder + "features_train_" + D_type +\
-				"_" + str(D_prm[0]) + ".pkl"
+	else:	# No PCA
+		if D_type == "Dense_SIFT":
+			num_scales = 5
+			D_prm = np.append(D_prm, num_scales)
 
+			feat_filename = root_folder + "features_train_" + D_type + \
+							"_" + str(D_prm[0]) + "_" + str(num_scales) + ".pkl"
+		else:
+			feat_filename = root_folder + "features_train_" + D_type + \
+							"_" + str(D_prm[0]) + ".pkl"
+
+	# 2) Check if we can load features (otherwise, compute them)
 	if os.path.isfile(feat_filename):
-		# Load features
+		# Load features (PCA)
 		print "Loading features from disk..."
 		start = time.time()
-		D, Train_descriptors = cPickle.load(open(feat_filename, "r"))
-		# Loaded descriptors (after PCA)
-		end = time.time()
-		print "Features loaded successfully in " + str(end-start) + " secs."
-		if D_type == "Dense_SIFT":
-			tmp_im = cv2.imread(train_imgs_filenames[0])
-			kpt = computeKeypoint_MSDenseSIFT(D_prm, tmp_im.shape[0],
-									  tmp_im.shape[1])
-			D_prm = kpt
-		return D, Train_descriptors, D_prm
+		if PCA_on:
+			D, Train_descriptors, pca, sclr_Dnp = cPickle.load(open(feat_filename, "r"))
+			end = time.time()
+			print "Features loaded successfully in " + str(end - start) + " secs."
+			if D_type == "Dense_SIFT":
+				tmp_im = cv2.imread(train_imgs_filenames[0])
+				kpt = computeKeypoint_MSDenseSIFT(D_prm, tmp_im.shape[0],
+												  tmp_im.shape[1])
+				D_prm = kpt
+			return D, Train_descriptors, D_prm, pca, sclr_Dnp
+
+		else:
+			# Load features (no PCA)
+			pca = []
+			sclr_Dnp = []
+			D, Train_descriptors = cPickle.load(open(feat_filename, "r"))
+			end = time.time()
+			print "Features loaded successfully in " + str(end - start) + " secs."
+			if D_type == "Dense_SIFT":
+				tmp_im = cv2.imread(train_imgs_filenames[0])
+				kpt = computeKeypoint_MSDenseSIFT(D_prm, tmp_im.shape[0],
+												  tmp_im.shape[1])
+				D_prm = kpt
+
+			return D, Train_descriptors, D_prm, pca, sclr_Dnp
+
 	else:
 		#  Compute and store descriptors in a python list of numpy arrays
 		print "Computing and storing descriptors..."
@@ -87,41 +104,54 @@ def computeTraining_descriptors(D_type, D_prm, train_imgs_filenames, train_label
 		Train_label_per_descriptor = []
 		for i in range(len(train_imgs_filenames)):
 			filename = train_imgs_filenames[i]
-			print 'Reading image '+filename
+			print 'Reading image ' + filename
 			ima = cv2.imread(filename)
 			kpt, des = compute_imgDescriptor(ima, D_type, D_prm)
-
 			Train_descriptors.append(des)
 			Train_label_per_descriptor.append(train_labels[i])
-			print str(len(kpt))+' extracted keypoints and descriptors'
+			print str(len(kpt)) + ' extracted keypoints and descriptors'
 
 		# Transform everything to numpy arrays
-		size_descriptors=Train_descriptors[0].shape[1]
-		D = np.zeros((np.sum([len(p) for p in Train_descriptors]),size_descriptors),dtype=np.uint8)
+		size_descriptors = Train_descriptors[0].shape[1]
+		D = np.zeros((np.sum([len(p) for p in Train_descriptors]), size_descriptors), dtype=np.uint8)
 		startingpoint = 0
 		for i in range(len(Train_descriptors)):
-			D[startingpoint:startingpoint+len(Train_descriptors[i])] = Train_descriptors[i]
+			D[startingpoint:startingpoint + len(Train_descriptors[i])] = Train_descriptors[i]
 			startingpoint += len(Train_descriptors[i])
 
-		# Save features to disk to avoid re-computation
+		# Check if the root folder exists. Otherwise, create it
 		if not os.path.isdir(root_folder):
-			# Create folder
 			os.mkdir(root_folder)
 
 		if PCA_on:
-			# Save features after PCA to save space
-			D = reduceDimensionality_PCA(D, num_cols)
+			# Need to scale and apply PCA to descriptors before storing
+			# the descriptors and the 'pca' matrix (needed for test)
 
+			# 1) Normalise descriptors
+			sclr_Dnp = StandardScaler().fit(D)
+			D = sclr_Dnp.transform(D)
+			# 2) Apply PCA
+			D, pca = reduceDimensionality_PCA(D, num_cols)
+			# 3) Apply these transformations (normalisation + PCA)
+			#  to the descriptors in "list of arrays" format
 			i = 0
 			for mtx in Train_descriptors:
 				# Apply PCA to reduce dimension
-				Train_descriptors[i] = reduceDimensionality_PCA(mtx, num_cols)
+				temp = sclr_Dnp.transform(mtx)
+				Train_descriptors[i] = pca.transform(temp)
 				i += 1
-
-		cPickle.dump([D, Train_descriptors], open(feat_filename, "wb"))
-		end = time.time()
-		print "Features computed and stored in " + str(end-start) + " secs."
-		return D, Train_descriptors, D_prm
+			# 4) Store descriptors + pca matrix
+			cPickle.dump([D, Train_descriptors, pca, sclr_Dnp], open(feat_filename, "wb"))
+			end = time.time()
+			print "Features computed and stored in " + str(end - start) + " secs."
+		else:
+			# Directly save computed descriptors to disk (w/o PCA)
+			cPickle.dump([D, Train_descriptors], open(feat_filename, "wb"))
+			end = time.time()
+			print "Features computed and stored in " + str(end - start) + " secs."
+			pca = []
+			sclr_Dnp = []
+			return D, Train_descriptors, D_prm, pca, sclr_Dnp
 
 # Compute a descriptor image per image (used in test)
 def compute_imgDescriptor(img, D_type, D_prm):
@@ -133,8 +163,6 @@ def compute_imgDescriptor(img, D_type, D_prm):
 			sift = cv2.SIFT(nfeatures=D_prm)
 
 		kpt, des = sift.detectAndCompute(gray, None)
-
-		# Reduce the descriptor's dimensionality by using PCA
 
 
 	# NOTE: for now we are trying a naive implementation by defining and iterating the grid
@@ -176,4 +204,25 @@ def reduceDimensionality_PCA(descriptors, SIFT_cols):
 		pca = PCA(n_components=SIFT_cols)
 		descriptors_out = pca.fit_transform(descriptors)
 
-		return descriptors_out
+		return descriptors_out, pca
+
+
+# Function to compute Spatial Pyramid
+# Workflow:
+# img => compute descriptors and KEYPOINTS ==>
+# distribute descriptors among regions (w.keypoints location)==>
+# get one BoVW for each partition==>
+# Normalise and perform weighted addition of hists
+# (to combine them)
+# * With 3 levels==> weights: 1/4 for level 0 and 1, 1/2 level 2
+# * 1, 4 and 16 histograms, respectively
+#
+#	- Notes:
+#		* It is better to use the same vocabulary for all
+#		*
+# ==> train SVM ==> test
+# Papers detailing spatial pyramids: https://goo.gl/unM87z &
+#									 https://goo.gl/Wc2xea
+
+def compute_spatialPyramids_trainingDescriptors(D_type, D_prm, train_imgs_filenames, train_labels):
+	return 0
