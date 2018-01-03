@@ -6,6 +6,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 import os
 import hashlib
+import math
 
 # Classifier class that encapsulates a generic classifier
 # An instance of this class is expected to be configured first in order
@@ -34,7 +35,7 @@ class CodeBook(BaseEstimator, TransformerMixin):		#compute the codebook
 		feat_filename += "features_" + dataset + "_"
 		feat_filename += self.descType
 		
-		if self.descType == "SIFT":
+		if self.descType == "SIFT" or self.descType == "SpatialPyramids":
 			feat_filename += "_" + str(self.numFeatures)
 		elif self.descType == "DenseSIFT":
 			feat_filename += "_st" + str(self.step) + "_sc" + str(self.scales)
@@ -91,7 +92,7 @@ class CodeBook(BaseEstimator, TransformerMixin):		#compute the codebook
 			end = time.time()
 			print "Features loaded successfully in " + str(end-start) + " secs."
 		else:
-			if self.descType == "SIFT":
+			if self.descType == "SIFT" or self.descType == "SpatialPyramids":
 				self.descriptor.configureSIFT(self.numFeatures)
 			elif self.descType == "DenseSIFT":
 				self.descriptor.configureDenseSIFT(self.step, self.scales)
@@ -101,7 +102,8 @@ class CodeBook(BaseEstimator, TransformerMixin):		#compute the codebook
 				filename=X[i]
 				print 'Reading image '+filename
 				kpt,des= self.descriptor.extractFeatures(filename)
-				Train_descriptors.append(des)
+				kpts = [k.pt for k in kpt]
+				Train_descriptors.append([kpts,des])
 				print str(len(kpt))+' extracted keypoints and descriptors'
 			
 			cPickle.dump(Train_descriptors, open(feat_filename, "wb"))
@@ -116,12 +118,14 @@ class CodeBook(BaseEstimator, TransformerMixin):		#compute the codebook
 		Train_descriptors = self.__extractFeatures(X)
 			
 		# Transform everything to numpy arrays
-		size_descriptors=Train_descriptors[0].shape[1]
-		D=np.zeros((np.sum([len(p) for p in Train_descriptors]),size_descriptors),dtype=np.uint8)
+		kpt0, des0 = Train_descriptors[0]
+		size_descriptors=des0.shape[1]
+		D=np.zeros((np.sum([len(p) for k,p in Train_descriptors]),size_descriptors),dtype=np.uint8)
 		startingpoint=0
 		for i in range(len(Train_descriptors)):
-			D[startingpoint:startingpoint+len(Train_descriptors[i])]=Train_descriptors[i]
-			startingpoint+=len(Train_descriptors[i])
+			kpt, des = Train_descriptors[i]
+			D[startingpoint:startingpoint+len(des)]=des
+			startingpoint+=len(des)
 			
 		self.CB(D)
 		
@@ -130,15 +134,58 @@ class CodeBook(BaseEstimator, TransformerMixin):		#compute the codebook
 	def transform(self, X):
 		# X are images filenames
 		print 'Getting Train BoVW representation'
+		np.set_printoptions(threshold=np.inf)
 		
 		Train_descriptors = self.__extractFeatures(X)
 		
 		init=time.time()
-		visual_words=np.zeros((len(Train_descriptors),self.k),dtype=np.float32)
-		for i in xrange(len(Train_descriptors)):
-			words = self.codebook.predict(Train_descriptors[i])
-			visual_words[i,:]=np.bincount(words,minlength=self.k)
-			end=time.time()
+				
+		if self.descType == "SIFT" or self.descType == "DenseSIFT":
+			visual_words=np.zeros((len(Train_descriptors),self.k),dtype=np.float32)
+			for i in xrange(len(Train_descriptors)):
+				_, des = Train_descriptors[i]
+				words = self.codebook.predict(des)
+				visual_words[i,:]=np.bincount(words,minlength=self.k)
+				end=time.time()
+				
+		elif self.descType == "SpatialPyramids":
+			visual_words=np.zeros((len(Train_descriptors),self.k*21),dtype=np.float32)
+			
+				
+			step = 256//4
+			for i in [1]: # xrange(len(Train_descriptors)):
+				layer = []
+				for j in range(16):
+					layer.append([])
+				
+				kpts,dess = Train_descriptors[i]
+				for kpt, des in zip(kpts,dess):
+					pos = int(math.floor(((kpt[1]//step)*4) + (kpt[0]//step)))
+					layer[pos].append(des)
+			
+				for j in range(16):
+					if len(layer[j]) > 0:
+						words = self.codebook.predict(layer[j])
+						hist = np.bincount(words,minlength=self.k)[0:-1]
+						print hist
+						visual_words[i,((5+j)*self.k):(((6+j)*self.k))-1]=hist/2.0
+						
+						if   j in [0,1,4,5]:
+							visual_words[i,(1*self.k):(2*self.k)-1] = np.add(visual_words[i,(1*self.k):(2*self.k)-1], hist/4.0)
+						elif j in [2,3,6,7]:
+							visual_words[i,(2*self.k):(3*self.k)-1] = np.add(visual_words[i,(2*self.k):(3*self.k)-1], hist/4.0)
+						elif j in [8,9,12,13]:
+							visual_words[i,(3*self.k):(4*self.k)-1] = np.add(visual_words[i,(3*self.k):(4*self.k)-1], hist/4.0)
+						elif j in [10,11,14,15]:
+							visual_words[i,(4*self.k):(5*self.k)-1] = np.add(visual_words[i,(4*self.k):(5*self.k)-1], hist/4.0)
+							
+						visual_words[i,0:self.k-1] = np.add(visual_words[i,0:self.k-1], hist/4.0)
+				
+				print visual_words[i,:]
+				
+		end=time.time()
+		
 		print 'Done in '+str(end-init)+' secs.'
 		
+		print visual_words
 		return visual_words
