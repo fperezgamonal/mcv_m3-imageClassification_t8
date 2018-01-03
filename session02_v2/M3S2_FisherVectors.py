@@ -20,7 +20,7 @@ class FisherVectors:
 		#	# we drop the meta-information (point coordinates, orientation, etc.)
 		#	image_descs.append(desc)
 		
-	def SampleDescriptors(image_descs, k , n_sample)
+	def SampleDescriptors(image_descs, k , n_sample):
 		# make a big matrix with all image descriptors
 		all_desc = np.vstack(image_descs)
 
@@ -50,7 +50,7 @@ class FisherVectors:
 		
 		return gmm, pca_transform, mean
 		
-	def EncodeSift (gmm, image_descs, pca_transform, mean)
+	def EncodeSift (gmm, image_descs, pca_transform, mean):
 		image_fvs = []
 		for image_desc in image_descs:
 		   # apply the PCA to the image descriptor
@@ -76,7 +76,7 @@ class FisherVectors:
 
 		return image_fvs
 		
-	def CompareImages(image_names, image_fvs)
+	def CompareImages(image_names, image_fvs):
 		# get the indices of the query images (the subset of images that end in "0")
 		query_imnos = [i for i, name in enumerate(image_names) if name[-1:] == "0"]
 
@@ -88,7 +88,7 @@ class FisherVectors:
 		
 		return query_imnos, results, distances
 		
-	def mAPPerformance(image_names, query_imnos, results)
+	def mAPPerformance(image_names, query_imnos, results):
 		aps = []
 		for qimno, qres in zip(query_imnos, results):
 			qname = image_names[qimno]
@@ -122,11 +122,11 @@ class FisherVectors:
 	# image_descs: type list, contains descriptors of the images
 	# mandatory: steps 1 and 2
 	# not mandatory: steps 3 and 4
-	def run (image_names, image_descs)
+	def run (image_names, image_descs):
 		#STEP 1
 		print "step 1"
 		# Next we sample the descriptors to reduce their dimensionality by PCA and computing a GMM. 
-		# For a GMM of size k (let’s set it to 64), we need about 1000*k training descriptors
+		# For a GMM of size k (let's set it to 64), we need about 1000*k training descriptors
 		# RETUNS: 1) Gausian Mixture Model trained 2) PCA Transform eigenvectors, mean for the PCA
 		k = 64
 		gmm, pca_transform, mean = SampleDescriptors(image_descs, k, k * 1000)
@@ -141,7 +141,7 @@ class FisherVectors:
 		#STEP 3
 		print "step 3"
 		# Now the FV can be used to compare images, so we compute for each Holidays query image the nearest images in the image_fvs matrix.
-		# RETUNS: 1) indices of the query images 2)int, classificació 3) float, distancia al cluster
+		# RETUNS: 1) indices of the query images 2)int, classificacio 3) float, distancia al cluster
 		#query_imnos, results, distances = CompareImages(image_names, image_fvs)
 		
 		#STEP 4
