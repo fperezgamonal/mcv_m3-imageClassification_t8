@@ -1,8 +1,3 @@
-# TODO:
-# Include all evaluation-related functions, which are:
-#   - For now use scikit's: confusion matrix, accuracy, fscore, etc. (later create our OWN)
-#   - print and plot results of cross validation and 'standard' execution (main.py)
-#       * One function for cross validation ('cross_val.py'), one for 'main.py'
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
@@ -101,30 +96,58 @@ def CVPlot_SVM(CV_grid, clf_params):
 	print "Obtained an accuracy of: %0.3f%% \n with clf_params: %s" \
 		  % (100*CV_grid.best_score_, CV_grid.best_params_)
 
-	# Mappings from clf_params to actual params
-	# (in case we want to add more)
-	C_range = clf_params['C']
-	gamma_range = clf_params['gamma']
-	# kernel_type = clf_params['kernel']
+	print "Generating graphs for kernel_type: " + clf_params['kernel'][0]
 
-	# Plot scores and parameters settings (C and gamma)
-	scores = CV_grid.cv_results_['mean_test_score'].reshape(len(C_range),
-														 len(gamma_range))
+	if clf_params['kernel'][0] == 'precomputed':
+		# Do a 2D graph with changes only with respect to C (no gamma)
+		C_range = clf_params['C']
+		scores = CV_grid.cv_results_['mean_test_score'].reshape(len(C_range))
+		title_str = "Best acccuracy: " + str(np.round(CV_grid.best_score_,4)) +\
+					" for C=" + str(np.round(CV_grid.best_params_['C'], 4))
+		# Make a simple figure
+		fig = plt.figure()
+		ax = fig.add_subplot(111)
+		ax.plot(C_range, scores, '-o')
+		ax.set_xscale('log')
+		ax.set_title(title_str)
+		ax.set_xlabel("C")
+		ax.set_ylabel("Accuracy")
+		ax.grid(True)
 
-	# Make a nice figure
+		# Add red horizontal line to highlight maximum accuracy
+		#ax.plot(C_range, np.repeat(CV_grid.best_score_, len(C_range)))
+		ax.axhline(CV_grid.best_score_, color='r', linestyle='--')
+		x_min, _ = ax.get_xlim()
+		_, y_max = ax.get_ylim()
+		ax.text(1.1*x_min, 0.9*y_max, str(np.round(CV_grid.best_score_, 4)), color='r')
+		plt.show()
 
-	plt.figure(figsize=(8, 6))
-	plt.subplots_adjust(left=.2, right=0.95, bottom=0.15, top=0.95)
-	plt.imshow(scores, interpolation='nearest', cmap=plt.cm.hot,
-			   norm=MidpointNormalize(vmin=0.2, midpoint=0.72))
-	plt.xlabel('gamma')
-	plt.ylabel('C')
-	plt.title("Cross-validation accuracy as a function of (C, gamma)")
-	plt.colorbar()
-	plt.xticks(np.arange(len(gamma_range)), gamma_range, rotation=45)
-	plt.yticks(np.arange(len(C_range)), C_range)
-	plt.title('Validation accuracy')
-	plt.show()
+	else: # Suppose 'rbf'==> C + gamma == heat map
+		C_range = clf_params['C']
+		gamma_range = clf_params['gamma']
+
+		# Plot scores and parameters settings (C and gamma)
+		scores = CV_grid.cv_results_['mean_test_score'].reshape(len(C_range),
+															 len(gamma_range))
+
+		# Make a nice figure
+
+		plt.figure(figsize=(8, 6))
+		plt.subplots_adjust(left=.2, right=0.95, bottom=0.15, top=0.95)
+		plt.imshow(scores, interpolation='nearest', cmap=plt.cm.hot,
+				   norm=MidpointNormalize(vmin=0.2, midpoint=0.72))
+		title_str = "Best accuracy:" + str(np.round(CV_grid.best_score_, 4)) + \
+					" for C=" + str(np.round(CV_grid.best_params_['C'], 4)) + \
+					",gamma=" + str(np.round(CV_grid.best_params_['gamma'], 4))
+
+		plt.xlabel('gamma')
+		plt.ylabel('C')
+		plt.title(title_str)
+		plt.colorbar()
+		plt.xticks(np.arange(len(gamma_range)), gamma_range, rotation=45)
+		plt.yticks(np.arange(len(C_range)), C_range)
+
+		plt.show()
 
 # For both plots below we have to save the model results or simply
 # pass in a vector of scores.

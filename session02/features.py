@@ -1,6 +1,3 @@
-# TODO:
-# FOR NOW: copied code related to features (so we can see in red needed imports,etc.)
-
 import sys
 import time
 import os.path
@@ -46,7 +43,7 @@ def computeTraining_descriptors(D_type, D_prm, train_imgs_filenames, train_label
 							"_PCA=" + str(PCA_on) + ".pkl"
 		else:
 			feat_filename = root_folder + "features_train_" + D_type + \
-							"_" + str(D_prm[0]) + "_PCA=" + str(PCA_on) +\
+							"_" + str(D_prm) + "_PCA=" + str(PCA_on) +\
 							".pkl"
 	else:	# No PCA
 		if D_type == "Dense_SIFT":
@@ -57,7 +54,7 @@ def computeTraining_descriptors(D_type, D_prm, train_imgs_filenames, train_label
 							"_" + str(D_prm[0]) + "_" + str(num_scales) + ".pkl"
 		else:
 			feat_filename = root_folder + "features_train_" + D_type + \
-							"_" + str(D_prm[0]) + ".pkl"
+							"_" + str(D_prm) + ".pkl"
 
 	# 2) Check if we can load features (otherwise, compute them)
 	if os.path.isfile(feat_filename):

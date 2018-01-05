@@ -1,22 +1,3 @@
-# BoVW.py (SVM)
-# TODO:
-# Functions to include:
-#   - Create BoVW (mini-batch k-means clustering==> codebook, store it)
-#   - Predict train(based on the codebook, obtain Visual Words)
-#   - Predict test (" " " " " " " on test)
-#
-# Parameters necessary for later integration with CV
-#   - We only need the descriptors 'D' (Dense SIFT or whatever)
-#
-# NOTES:
-#   - Encode codebook.dat in such a way that we only recompute it if:
-#       * D is difference (e.g.: different number of dense SIFT vectors per img)
-#   - Create a folder called 'codebooks' at the root path of the repo
-#   - We work with both D (re-shaped numpy array) and train_descriptors (for testing)
-#     which is not re-shaped yet (get them both as input params, properly encoded)
-
-# FOR NOW: copied code related to features (so we can see in red needed imports,etc.)
-
 import cPickle
 import os.path
 import time
@@ -44,11 +25,11 @@ def computeCodebook(numClusters, descriptors, D_type, D_prm, PCA_on):       # to
 	else:
 		if PCA_on:
 			CB_filename = root_folder + "codebook_k" + str(numClusters) + "-" \
-						  + D_type + "_" + str(D_prm[0]) + "_PCAon_" + \
+						  + D_type + "_" + str(D_prm) + "_PCAon_" + \
 						  str(PCA_on) + ".dat"
 		else:
 			CB_filename = root_folder + "codebook_k" + str(numClusters) + "-" \
-						  + D_type + "_" + str(D_prm[0]) + ".dat"
+						  + D_type + "_" + str(D_prm) + ".dat"
 	#CB_filename = os.path.join(os.pardir, CB_filename)
 
 	if os.path.isfile(CB_filename):

@@ -1,16 +1,4 @@
-# classifier.py (SVM)
-# TODO:
-# Functions to include:
-#   - Train (include training normalisation, store it and then train)
-#   - Predict ('load' training normalisation, applied it and predict)
-#
-# Parameters necessary for later integration with CV
-#   - Add at least the following SVM' train params as input variables:
-#       * 'C', 'gamma', 'kernel'
-
-# FOR NOW: copied code related to features (so we can see in red needed imports,etc.)
 import time
-import sys
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn import svm
@@ -18,25 +6,38 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import GridSearchCV
 
 # Train an SVM classifier
-def clf_train(train_VW, train_labels, C, gamma, kernel):
+def clf_train(train_VW, train_labels, clf_params):
     print "Training the SVM classifier..."
     initClf = time.time()
     stdSlr = StandardScaler().fit(train_VW)
     D_scaled = stdSlr.transform(train_VW)
-    # Default was kernel 'rbf', C=1 and gamma .002
-    clf = svm.SVC(kernel=kernel, C=C, gamma=gamma)
-    clf.fit(D_scaled, train_labels)
+
+    if clf_params['kernel'][0] == 'precomputed':
+        kernelMtx = histogramIntersectionKernelGramMatrix(D_scaled, D_scaled)
+        clf = svm.SVC(kernel='precomputed', C=clf_params['C'])
+        clf.fit(kernelMtx, train_labels)
+
+    else:  # 'rbf', 'linear' or any other pre-defined kernel
+        # Default was kernel 'rbf', C=1 and gamma .002
+        clf = svm.SVC(kernel=clf_params['kernel'][0], C=clf_params['C'],
+                      gamma=clf_params['gamma'])
+        clf.fit(D_scaled, train_labels)
+
     endClf = time.time()
     print "Training done in " + str(endClf-initClf) + " secs."
-    return clf, stdSlr
+    return clf, stdSlr, D_scaled
 
 # Test the classification accuracy (predict)
-def clf_predict(clf, train_scaler, VW_test, test_labels):
+def clf_predict(clf, clf_params, train_scaler, VW_test, D_scaled):
     print "Testing the SVM classifier..."
     init_p=time.time()
-    # We are not only interested in accuracy, we want the actual predictions
-    # to compute OUR OWN accuracy, f-score, etc...
-    predictions = clf.predict(train_scaler.transform(VW_test))
+    if clf_params['kernel'][0] == 'precomputed':
+        predictMatrix = histogramIntersectionKernelGramMatrix(train_scaler.transform(VW_test), D_scaled)
+        predictions = clf.predict(predictMatrix)
+
+    else:
+        predictions = clf.predict(train_scaler.transform(VW_test))
+
     end_p=time.time()
     print "Predictions computed in " + str(end_p-init_p) + " secs."
     return predictions
@@ -57,11 +58,21 @@ def KFoldCrossValidation(train_VW, train_labels, n_folds, clf_params):
     init = time.time()
     # Initialise stratifiedKFold and GridSearchCV
     kfolds = StratifiedKFold(n_splits=n_folds, shuffle=False, random_state=42)
-    grid = GridSearchCV(svm.SVC(), param_grid=clf_params, cv=kfolds, scoring='accuracy',
+
+    if clf_params['kernel'][0] == 'precomputed':
+        # Delete 'kernel' from dictionary of parameters just to make sure it works
+        #del clf_params['kernel']
+        kernelMtx = histogramIntersectionKernelGramMatrix(D_scaled, D_scaled)
+        grid = GridSearchCV(svm.SVC(kernel='precomputed'), param_grid=clf_params, cv=kfolds, scoring='accuracy',
+                            error_score=0, n_jobs=-1, verbose=10)
+        grid.fit(kernelMtx, train_labels)
+
+    else:   # 'rbf', 'linear' or any other pre-defined kernel
+        grid = GridSearchCV(svm.SVC(), param_grid=clf_params, cv=kfolds, scoring='accuracy',
                         error_score=0, n_jobs=-1, verbose=10)
 
-    # Start fitting all the combinations (N fits)
-    grid.fit(D_scaled, train_labels)
+        # Start fitting all the combinations (N fits)
+        grid.fit(D_scaled, train_labels)
 
     end = time.time()
     print "Finished K-fold Cross-validation. Done in " + str(end-init) + " secs."

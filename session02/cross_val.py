@@ -1,5 +1,3 @@
-# Based on main.py(session02) and cross_val.py from session01 but simplified
-# (as we only use SVM as classifier)
 import cPickle
 import numpy as np
 import time
@@ -29,10 +27,21 @@ elif num_scheme == 2:
 # Codebook
 n_clusters = np.array([128, 256, 512])
 # SVM
-C_range = 10. ** np.arange(-3, 8)
-gamma_range = 10. ** np.arange(-5, 4)
-#clf_prms = {'kernel':('rbf', 'precomputed'), 'C':C_range, 'gamma':gamma_range}
-clf_prms = {'C':C_range, 'gamma':gamma_range}
+# Coarser
+#C_range = 10. ** np.arange(-3, 8)
+# Finer (be it with base 10 or 2)
+#C_range = np.linspace(1, 10, 10)
+C_range = np.logspace(-5, 3, 20)
+
+# Coarser
+#gamma_range = 10. ** np.arange(-5, 4)
+# Finer
+#gamma_range = np.linspace(10.**-3, 10.**-2, 10)
+
+# Dictionary of params
+clf_prms = {'kernel':['precomputed'], 'C':C_range}
+#clf_prms = {'kernel':['rbf', 'precomputed'], 'C':C_range, 'gamma':gamma_range}
+#clf_prms = {'kernel':['rbf'], 'C':C_range, 'gamma':gamma_range}
 num_folds = 5
 # C = 1
 # gamma = 0.002
@@ -40,7 +49,8 @@ num_folds = 5
 
 # Evaluation
 save_Grid = True
-PCA_on = False		# Not working properly (dimensions mismatch)
+PCA_on = False		# Now working (slightly improving results
+#  but higher memory & CPU usage)
 if PCA_on:
 	n_cols = 64
 else:
@@ -48,12 +58,12 @@ else:
 
 def run_scheme(scheme, descriptor_type, descriptor_param,
 			   num_clusters, clf_params, n_folds, saveGrid, PCA, num_cols):
-	print "Running cross-validation scheme number= ..." + str(scheme)
+	print "Running cross-validation scheme number={!s} ..." .format(scheme)
 
 
 	start = time.time()
 
-	# 1) Read the train and test files (DO ONCE)
+	# 1) Read the train and test files
 	train_images_filenames = cPickle.load(open('train_images_filenames.dat','r'))
 	test_images_filenames = cPickle.load(open('test_images_filenames.dat','r'))
 	train_labels = cPickle.load(open('train_labels.dat','r'))
@@ -98,7 +108,10 @@ def run_scheme(scheme, descriptor_type, descriptor_param,
 		# print "Cross Validation: summary of results..."
 		# print ""
 		# printCV_resultSummary(CVGrid, descriptor_type)
-		print "Cross Validation: plotting accuracy vs (C, gamma)..."
+		print "Cross Validation: plotting accuracy vs clf_params..."
+		print "Running cross-validation with: n_clusters=" + \
+			  str(num_clusters) + ", D_param=" + str(descriptor_param)
+
 		CVPlot_SVM(CVGrid, clf_prms)
 
 		if saveGrid:

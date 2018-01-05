@@ -1,15 +1,3 @@
-# TODO:
-#   - Link all functions
-#   - Define options (e.g.: SIFT + SVM, DenseSIFT + SVM, FisherVectors + SVM,etc.)
-# Containing steps:
-#   1) Load train and test data and labels
-#   2) Extract features for the training data
-#   3) Compute codebook
-#   4) Get training BoVW
-#   5) Train SVM
-#   6) Get test BoVW
-#   7) Get evaluation (now only accuracy is printed but we should include graphics
-#      and more measures
 import cPickle
 import numpy as np
 import time
@@ -37,27 +25,37 @@ else:
 
 # Codebook
 n_clusters = 512
-# SVM
+# <<<SVM>>>
 # Reference params were==> C=1, gm=0.002
 # Best in CV for MS Dense SIFT ==> C=10, gm=0.001
-# Best in CV for SIFT ==> C=XX, gm = X.XXX
-cost = 10
-gma = 0.001
-krnl = 'rbf'
+#clfParams = {'C': 10, 'gamma': 0.001, 'kernel': ['rbf']}
+clfParams = {'C': 4, 'gamma': 0.001, 'kernel': ['rbf']}
+
+# Best in CV for SIFT ==> C=1, gm = 0.001 (the default params
+# were not tested so re-training with 0.001 may yield worse
+# results) ==> it does: 68.40% vs 68.65% (gamma =.002)
+#clfParams = {'C': 1, 'gamma': 0.001, 'kernel': ['rbf']}
+
+# Best in CV for MS Dense SIFT (Hist.Inters)==> C=0.0089
+#clfParams = {'C': 0.0088586679041008226, 'kernel': ['precomputed']}
+
+# Best in CV for SIFT (Hist.Inters) ==>
+#clfParams = {'C': 0.0088586679041008226, 'kernel': ['precomputed']}
+
 # Evaluation
 plotGraph = True
-PCA_on = True
+PCA_on = False
 if PCA_on:
     n_cols = 64
 else:
     n_cols = 128
 
 def run_scheme(scheme, descriptor_type, descriptor_param,
-               num_clusters, C, gamma, kernel, plotGraphs, PCAon, num_cols):
+               num_clusters, clf_params, plotGraphs, PCAon, num_cols):
     print "Running scheme with the following parameters: "
     print "Scheme num: " + str(scheme) + ", BoVW: num_clusters=" + str(num_clusters) +\
-        "; SVM: C=" + str(C) + ", gamma=" + str(gamma) + ", kernel='" + kernel + "'" +\
-        "; plotGraphs=" + str(plotGraphs) + "; PCA_on=" + str(PCAon)
+        "; SVM: params:" + str(clf_params) + ";\n plotGraphs=" + str(plotGraphs) +\
+          "; PCA_on=" + str(PCAon)
     start = time.time()
 
     # 1) Read the train and test files
@@ -83,7 +81,7 @@ def run_scheme(scheme, descriptor_type, descriptor_param,
     train_VW = getBoVW_train(codebook, num_clusters, Train_descriptors)
 
     # 6) Train SVM
-    clf, train_scaler = clf_train(train_VW, train_labels, C, gamma, kernel)
+    clf, train_scaler, D_scaled = clf_train(train_VW, train_labels, clf_params)
 
     # 7) Get test BoVW
     test_VW = getBoVW_test(codebook, num_clusters, test_images_filenames,
@@ -91,7 +89,7 @@ def run_scheme(scheme, descriptor_type, descriptor_param,
                            kpt_dense, PCAon, pca_train, sclr_train)
 
     # 8) Get evaluation (accuracy, f-score, graphs, etc.)
-    predictions = clf_predict(clf, train_scaler, test_VW, test_labels)
+    predictions = clf_predict(clf, clf_params, train_scaler, test_VW, D_scaled)
     # Get metrics and graphs:
     # We need to implement our own for latter integration with the rest of the project
     # Accuracy, F-score (multi-class=> average? add up?)
@@ -125,10 +123,11 @@ def run_scheme(scheme, descriptor_type, descriptor_param,
     ### 78.07% MS Dense SIFT (smaller step, <700MBs of features)
     ### 82.00% MS Dense SIFT (step = 16) with optimal CV params(see above)
     ### 69.89% Same params as default but with PCA (64 cols)
-    ### XX.XX% Same params as Optimal CV dense SIFT (82.00%)
+    ### XX.XX% Same params as Optimal CV dense SIFT+PCA (82.00%)
+    ### 81.54% MS Dense SIFT with Hist.Int. (after CV)
 
 if __name__ == "__main__":
-	# main of this function
+    # main of this function
 	print "Executing session02/main.py..."
 
 # change 'num' value (top) to run routine number 'num'. Mappings:
@@ -140,4 +139,4 @@ if __name__ == "__main__":
 
 # Execute 'num' scheme ('num' is defined at the top)
 	run_scheme(num_scheme, D_type, D_param, n_clusters,
-               cost, gma, krnl, plotGraph, PCA_on, n_cols)
+               clfParams, plotGraph, PCA_on, n_cols)
