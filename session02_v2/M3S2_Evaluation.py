@@ -16,39 +16,41 @@ class Evaluation:
 	__slots__=['__TP','__TN','__FP','__FN', '__test_labels', '__visual_words_test']
 
 	#initialize vars
-	def __init__(self, visual_words_test):
+	def __init__(self, predictedclass):
 		
 		self.__TP = None
 		#self.__FP = None
 		self.__TN = None
 		#self.__FN = None
 		self.__test_labels = cPickle.load(open('test_labels.dat','r'))
-		#self.__predictedclass = predictedclass	
-		self.__visual_words_test = visual_words_test	
+		self.__predictedclass = predictedclass	
+		#self.__visual_words_test = visual_words_test	
 		
 	# Accuracy
-	def accuracy(self):
-		print 'Testing the SVM classifier...'
-		init=time.time()
-		accuracy = 100*clf.score(stdSlr.transform(self.__visual_words_test), self.__test_labels)
-		end=time.time()
-		print 'Done in '+str(end-init)+' secs.'
+	#def accuracy(self):
+	#	print 'Testing the SVM classifier...'
+	#	init=time.time()
+	#	accuracy = 100*clf.score(stdSlr.transform(self.__visual_words_test), self.__test_labels)
+	#	end=time.time()
+	#	print 'Done in '+str(end-init)+' secs.'
 		
-		print 'Final accuracy: ' + str(accuracy)
+	#	print 'Final accuracy: ' + str(accuracy)
 
-		return accuracy
+	#	return accuracy
 
+	def accuracy(self):
+		return accuracy_score(self.__test_labels, self.__predictedclass)
 	# Precision
-	#def precision(self):
-	#	return precision_score(self.__test_labels, self.__predictedclass, average='weighted')
+	def precision(self):
+		return precision_score(self.__test_labels, self.__predictedclass, average='weighted')
 		
 	# Recall
-	#def recall(self):
-	#	return recall_score(self.__test_labels, self.__predictedclass, average='weighted')
+	def recall(self):
+		return recall_score(self.__test_labels, self.__predictedclass, average='weighted')
 		
 	# F1 Score
-	#def f1Score(self):
-	#	return f1_score(self.__test_labels, self.__predictedclass, average='weighted')
+	def f1Score(self):
+		return f1_score(self.__test_labels, self.__predictedclass, average='weighted')
 		
 	# Confusion Matrix
 	def confMatrix(self):
@@ -109,16 +111,16 @@ class Evaluation:
 	#	print self.confMatrix()
 		
 		print "accuracy = " +  str(self.accuracy())
-	#	print "precision = " + str(self.precision())
-	#	print "recall = " + str(self.recall())
-	#	print "f1 Score = " + str(self.f1Score())
+		print "precision = " + str(self.precision())
+		print "recall = " + str(self.recall())
+		print "f1 Score = " + str(self.f1Score())
 		
 		hm = self.HitsAndMisses()
-	#	print "Hits = " + str(hm[0])
-	#	print "Misses = " + str(hm[1])
+		print "Hits = " + str(hm[0])
+		print "Misses = " + str(hm[1])
 		#rint "FP = " + str(self.fp())
 		#print "FN = " + str(self.fn())
 		
-	#	self.printConfMatrix()
+		self.printConfMatrix()
 		
 

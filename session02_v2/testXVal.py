@@ -15,7 +15,7 @@ def saveXVal(grid):
 	if not os.path.isdir(root_folder):
 		os.mkdir(root_folder)
 	
-	filename = os.path.join(root_folder, "xval_", str(time.time()) , ".pkl")
+	filename = os.path.join(root_folder, "xval_" + str(time.time()) + ".pkl")
 	cPickle.dump(grid, open(filename, "wb"))
 
 # read the train and test files
@@ -42,18 +42,17 @@ params = dict(		descriptor__descType=["SIFT"],
 					classify__C=[1])
 '''
 
-params = dict(		descriptor__descType=["DenseSIFT"],
-			  		descriptor__step=[50],
-					descriptor__scales=[5],
-					descriptor__k=[10],
-					classify__kernel=["rbf"],
-					classify__gamma= [.002],
+params = dict(		descriptor__descType=["SpatialPyramids"],
+			  		descriptor__numFeatures=[512],
+					descriptor__k=[600],
+					classify__kernel=[CodeBook.pyramidMatchKernel],
+					classify__gamma= [0.0001,0.01,10],
 					classify__C=[1])
 
 
 # Cross-validate
 start = time.time()
-grid = GridSearchCV(pipe, cv=6, n_jobs=4, param_grid=params)
+grid = GridSearchCV(pipe, cv=6, n_jobs=1, param_grid=params)
 grid.fit(train_images_filenames, train_labels)
 end = time.time()
 

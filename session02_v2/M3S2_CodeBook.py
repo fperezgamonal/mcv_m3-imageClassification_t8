@@ -56,6 +56,7 @@ class CodeBook(BaseEstimator, TransformerMixin):		#compute the codebook
 		
 		return model_filename
 		
+	# computes the codebook
 	def CB (self, descriptors):
 		print("Computing codebook...")
 		m = hashlib.md5(str(descriptors[0:10])).hexdigest()
@@ -82,6 +83,7 @@ class CodeBook(BaseEstimator, TransformerMixin):		#compute the codebook
 			
 		return self.codebook
 	
+	# extracts features from X a list of images
 	def __extractFeatures(self, X):
 		
 		md5 = hashlib.md5(str(X)).hexdigest()
@@ -112,6 +114,7 @@ class CodeBook(BaseEstimator, TransformerMixin):		#compute the codebook
 			
 		return Train_descriptors
 	
+	# trains a codebook with a list of images and their labels
 	def fit(self, X, y=None, **fit_params):
 		# X are images filenames
 		# fit_params contain SIFT "numFeatures" and KMeans "k"
@@ -133,6 +136,7 @@ class CodeBook(BaseEstimator, TransformerMixin):		#compute the codebook
 		
 		return self
 	
+	# transforms a list of images in a list of words
 	def transform(self, X):
 		# X are images filenames
 		print 'Getting Train BoVW representation'
@@ -195,6 +199,8 @@ class CodeBook(BaseEstimator, TransformerMixin):		#compute the codebook
 		print visual_words.shape
 		return visual_words
 	
+	# histogram intersection kernel in the form that can be provided to 
+	# sklearn SVC
 	@staticmethod
 	def histogramIntersectionKernel(X, Y):
 		kernel = np.zeros((X.shape[0], Y.shape[0]))
@@ -206,6 +212,8 @@ class CodeBook(BaseEstimator, TransformerMixin):		#compute the codebook
 
 		return kernel
 
+	# pyramid Match kernel in the form that can be provided to
+	# sklearn SVC
 	@staticmethod
 	def pyramidMatchKernel(X, Y):
 		k = X.shape[1]/21
