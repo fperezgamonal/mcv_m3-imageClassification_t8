@@ -57,7 +57,9 @@ class CodeBook(BaseEstimator, TransformerMixin):		#compute the codebook
 		return model_filename
 		
 	def CB (self, descriptors):
-		m = hashlib.md5(str(descriptors)).hexdigest()
+		print("Computing codebook...")
+		m = hashlib.md5(str(descriptors[0:10])).hexdigest()
+		print("Hash caluclated")
 		model_filename = self.__getModelSaveFilename(m)
 		
 		print model_filename
@@ -151,41 +153,74 @@ class CodeBook(BaseEstimator, TransformerMixin):		#compute the codebook
 		elif self.descType == "SpatialPyramids":
 			visual_words=np.zeros((len(Train_descriptors),self.k*21),dtype=np.float32)
 			
-				
+			
 			step = 256//4
-			for i in [1]: # xrange(len(Train_descriptors)):
+			for i in xrange(len(Train_descriptors)):
 				layer = []
 				for j in range(16):
 					layer.append([])
 				
 				kpts,dess = Train_descriptors[i]
-				for kpt, des in zip(kpts,dess):
+				words = self.codebook.predict(dess)
+				
+				# let's divide the image in 16 tiles (4x4)
+				# for each keypoint, we get the tile number
+				# and create a list for each tile containing
+				# the keypoints and descriptors in it
+				for kpt, des in zip(kpts,words):
 					pos = int(math.floor(((kpt[1]//step)*4) + (kpt[0]//step)))
 					layer[pos].append(des)
 			
+				# for each tile, we compute the histogram
 				for j in range(16):
 					if len(layer[j]) > 0:
-						words = self.codebook.predict(layer[j])
-						hist = np.bincount(words,minlength=self.k)[0:-1]
-						print hist
-						visual_words[i,((5+j)*self.k):(((6+j)*self.k))-1]=hist/2.0
+						hist = np.bincount(layer[j],minlength=self.k)#[0:-1]
+						visual_words[i,((5+j)*self.k):(((6+j)*self.k))]=hist/2.0
 						
 						if   j in [0,1,4,5]:
-							visual_words[i,(1*self.k):(2*self.k)-1] = np.add(visual_words[i,(1*self.k):(2*self.k)-1], hist/4.0)
+							visual_words[i,(1*self.k):(2*self.k)] = np.add(visual_words[i,(1*self.k):(2*self.k)], hist/4.0)
 						elif j in [2,3,6,7]:
-							visual_words[i,(2*self.k):(3*self.k)-1] = np.add(visual_words[i,(2*self.k):(3*self.k)-1], hist/4.0)
+							visual_words[i,(2*self.k):(3*self.k)] = np.add(visual_words[i,(2*self.k):(3*self.k)], hist/4.0)
 						elif j in [8,9,12,13]:
-							visual_words[i,(3*self.k):(4*self.k)-1] = np.add(visual_words[i,(3*self.k):(4*self.k)-1], hist/4.0)
+							visual_words[i,(3*self.k):(4*self.k)] = np.add(visual_words[i,(3*self.k):(4*self.k)], hist/4.0)
 						elif j in [10,11,14,15]:
-							visual_words[i,(4*self.k):(5*self.k)-1] = np.add(visual_words[i,(4*self.k):(5*self.k)-1], hist/4.0)
+							visual_words[i,(4*self.k):(5*self.k)] = np.add(visual_words[i,(4*self.k):(5*self.k)], hist/4.0)
 							
-						visual_words[i,0:self.k-1] = np.add(visual_words[i,0:self.k-1], hist/4.0)
-				
-				print visual_words[i,:]
+						visual_words[i,0:self.k] = np.add(visual_words[i,0:self.k], hist/4.0)
 				
 		end=time.time()
 		
 		print 'Done in '+str(end-init)+' secs.'
 		
-		print visual_words
+		print visual_words.shape
 		return visual_words
+	
+	@staticmethod
+	def histogramIntersectionKernel(X, Y):
+		kernel = np.zeros((X.shape[0], Y.shape[0]))
+
+		for d in range(X.shape[1]):
+			column_1 = X[:, d].reshape(-1, 1)
+			column_2 = Y[:, d].reshape(-1, 1)
+			kernel += np.minimum(column_1, column_2.T)
+
+		return kernel
+
+	@staticmethod
+	def pyramidMatchKernel(X, Y):
+		k = X.shape[1]/21
+		
+		X_2 = X[:,0:k]
+		Y_2 = Y[:,0:k]
+		
+		X_1 = X[:,k:5*k]
+		Y_1 = Y[:,k:5*k]
+		
+		X_0 = X[:,5*k:X.shape[1]]
+		Y_0 = Y[:,5*k:Y.shape[1]]
+		
+		I_0 = CodeBook.histogramIntersectionKernel(X_0, Y_0)
+		I_1 = CodeBook.histogramIntersectionKernel(X_1, Y_1)
+		I_2 = CodeBook.histogramIntersectionKernel(X_2, Y_2)
+		
+		return I_0 + ((I_1 - I_0)/2.0) + ((I_2 - I_1)/4.0)
