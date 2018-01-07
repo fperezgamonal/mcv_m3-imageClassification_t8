@@ -4,6 +4,7 @@ import sys
 import os.path
 import numpy as np
 from M3S2_Pipeline import Pipeline
+import cPickle
 
 # NOTE: this script is practically identical to cross_val.py but
 # w/o looping through params or calling KFoldCrossValidate...
