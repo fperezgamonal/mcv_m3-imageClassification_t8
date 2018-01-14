@@ -113,6 +113,8 @@ plt.legend(['train', 'validation'], loc='upper left')
 plt.savefig('loss.jpg')
 plt.show()
 
+
+# For each layer we get its output and use it as features to train SVM
 for layer_name in ['sixth','fifth', 'fourth', 'third', 'second']:
 	model_layer = Model(inputs=model.input, outputs=model.get_layer(layer_name).output)
 	#get the features from images
@@ -120,6 +122,7 @@ for layer_name in ['sixth','fifth', 'fourth', 'third', 'second']:
 
 	val_feats = model_layer.predict_generator(validation_generator)
 	
+	# Normalization of features
 	stdSlr = StandardScaler().fit(train_feats)
 	norm_train_feats = stdSlr.transform(train_feats)
 	stdSlr2 = StandardScaler().fit(val_feats)
@@ -128,6 +131,7 @@ for layer_name in ['sixth','fifth', 'fourth', 'third', 'second']:
 	train_labels = train_generator.classes
 	val_labels = validation_generator.classes
 	
+	# Cross validation to find best SVM parameters
 	print("# Tuning hyper-parameters")
 	tuned_parameters = [{'kernel': ['rbf'],
                          'gamma': [1, .1, .01, .001, .0001, .00001],
@@ -138,12 +142,13 @@ for layer_name in ['sixth','fifth', 'fourth', 'third', 'second']:
 	
 	print "Best parameters set found on development set:", 	clf.best_params_
 	
+	# Apply best parameters found to train final SVM
 	clf = SVC(C=clf.best_params_['C'], 
               kernel=clf.best_params_['kernel'], 
               gamma=clf.best_params_['gamma'])
 	clf.fit(norm_train_feats, train_labels)
 	
+	# Get final accuracy for current layer
 	predicted = clf.predict(norm_val_feats)
-		
 	print 'SVM accuracy for layer ', layer_name, ': ', accuracy_score(val_labels, predicted,normalize=True)
 
