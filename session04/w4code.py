@@ -107,7 +107,7 @@ if blocks_used == 3: # only first 3 blocks (EXTRA test if we have time!)
 	x = base_model.layers[-13].output
         # Flatten block3_conv4+pool' output
         x = Flatten()(x)
-        x = Dense(2048, activation='relu')#,
+        x = Dense(2048, activation='relu')(x)#,
 		#kernel_initializer='glorot_normal',
 		#bias_initializer=Constant(value=0.1),
 		#name='own_first_FC')(x)
@@ -118,7 +118,7 @@ elif blocks_used == 4: # up to block 4
 	# Add FC layers (1 for now, 2 uses too much memory in theory)
 	# Flatten block4_conv4+pool' output
 	x = Flatten()(x)
-	x = Dense(2048, activation='relu')#,
+	x = Dense(2048, activation='relu')(x)#,
                 #kernel_initializer='glorot_normal',
                 #bias_initializer=Constant(value=0.1),
                 #name='own_first_FC')(x)
