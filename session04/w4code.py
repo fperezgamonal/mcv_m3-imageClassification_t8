@@ -107,10 +107,10 @@ if blocks_used == 3: # only first 3 blocks (EXTRA test if we have time!)
 	x = base_model.layers[-13].output
         # Flatten block3_conv4+pool' output
         x = Flatten()(x)
-        x = Dense(2048, activation='relu',
-		kernel_initializer='glorot_normal',
-		bias_initializer=Constant(value=0.1),
-		name='own_first_FC')(x)
+        x = Dense(2048, activation='relu')#,
+		#kernel_initializer='glorot_normal',
+		#bias_initializer=Constant(value=0.1),
+		#name='own_first_FC')(x)
         #x = Dense(4096, activation='relu')(x)
 
 elif blocks_used == 4: # up to block 4
@@ -118,10 +118,10 @@ elif blocks_used == 4: # up to block 4
 	# Add FC layers (1 for now, 2 uses too much memory in theory)
 	# Flatten block4_conv4+pool' output
 	x = Flatten()(x)
-	x = Dense(2048, activation='relu',
-                kernel_initializer='glorot_normal',
-                bias_initializer=Constant(value=0.1),
-                name='own_first_FC')(x)
+	x = Dense(2048, activation='relu')#,
+                #kernel_initializer='glorot_normal',
+                #bias_initializer=Constant(value=0.1),
+                #name='own_first_FC')(x)
 	#x = Dense(4096, activation='relu')(x)
 
 else:	# complete VGG is used
@@ -137,8 +137,10 @@ print("Complete model (VGG16 + modifications) summary:")
 print("")
 model.summary()
 plot_model(model, to_file='modelVGG16b_up2block=' + str(blocks_used) + '.png', show_shapes=True, show_layer_names=True)
-for layer in base_model.layers:
-	layer.trainable = False
+
+if not train_from_scratch:
+	for layer in base_model.layers:
+		layer.trainable = False
 
 
 model.compile(loss='categorical_crossentropy',optimizer='adadelta', metrics=['accuracy'])
