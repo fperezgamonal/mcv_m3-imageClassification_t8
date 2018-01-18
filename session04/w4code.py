@@ -5,6 +5,7 @@ from keras.models import Model
 from keras.layers import Flatten
 from keras.layers import Dense, GlobalAveragePooling2D
 from keras.initializers import Constant
+from keras.optimizers import SGD, Adam, Adadelta, Adagrad
 from keras import backend as K
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from keras.utils.vis_utils import plot_model
@@ -12,6 +13,7 @@ from keras.utils.vis_utils import plot_model
 # the import above does not work). This is from an older Keras version.
 from keras.preprocessing.image import ImageDataGenerator
 import matplotlib.pyplot as plt
+import time
 # GPU-server specific
 # imports
 import os
@@ -39,27 +41,31 @@ img_width = 224
 img_height=224
 batch_size=32
 number_of_epoch=50
-train_from_scratch = False # whether to train the WHOLE vgg with the changes
-# or just the modified part (for S04 this should be set to False most of the times)
+train_from_scratch = False# True #False 	# train all the layers (including whole VGG16)
 
-plot = True  # Whether to compute acc and loss curves or not
-# Note: if we make TensorBoard(LIVE results) work, we can use its curves and
-# access to more details instead of those plots.
-
-# VGG base model filename (to load it and not download it,etc)
-#baseModel_fname ="VGG16_allWeights.h5" # Should not be needed if keras detects that VGG weights have
-# already been stored
+plot = False  			# Whether to compute acc and loss curves or not
+# Note: since we are using TensorBoard(LIVE results), we can use its curves and
+# access to more details instead of those plots. Additionaly, we have run into
+# problems while saving these graphs in the server.
 
 dropout = False
 drop_prob = 0.5
-blocks_used = 4 # blocks of the original VGG net used (def=5)
-n_examples = 1881 # Number of training examples used (def=1881)
+blocks_used = 4			# blocks of the original VGG net used (def=5)
+n_examples = 1881		# Number of training examples used (def=1881)
 
-# Task-specific model weights
-model_fname = "scenes_FC_layers-n_examples=" + str(n_examples) +\
+# Task-specific model weights (topModel==> added layers)
+top_fc_fname = "top_FC_layers-n_examples=" + str(n_examples) +\
 		"_blocks_used=" + str(blocks_used) + "_dropout=" +\
 		str(dropout) + "_p=" + str(drop_prob) + ".h5"
 
+# Check if we are training (and can) the whole model or just training new layers
+if (train_from_scratch == False): # leave model_fname as is
+	print("We will train ONLY the new layers added to the base model")
+	model_fname = top_fc_fname
+else:
+	model_fname = top_fc_fname.replace("top_FC_layers", "whole_model", 1)
+
+# Pre-processing (zero-center images)
 def preprocess_input(x, dim_ordering='default'):
 	if dim_ordering == 'default':
 		dim_ordering = K.image_dim_ordering()
@@ -81,44 +87,42 @@ def preprocess_input(x, dim_ordering='default'):
 		x[:, :, 2] -= 123.68
 	return x
 
-#if os.path.isfile(baseModel_fname):
-#	# Load base model
-#	base_model = VGG16(weights='imagenet')#it can be loaded like this and it SHOULD NOT be downloaded again (loaded form memory instead)
-#	#base_model.load_weights(baseModel_fname) # Load stored weights (from unique download)
-#else:	
-#	# create the base pre-trained model (done once)
-#	base_model = VGG16(weights='imagenet')
-#	plot_model(base_model, to_file='modelVGG16a.png', show_shapes=True, show_layer_names=True)
-#	# Save model to avoid downloading for each execution
-#	base_model.save_weights(baseModel_fname)
-
 base_model = VGG16(weights='imagenet')
 if not os.path.isfile('modelVGG16a.png'):
 	plot_model(base_model, to_file='modelVGG16a.png', show_shapes=True, show_layer_names=True)
 
-print("")
-print("Base model (VGG16) summary:")
-print("")
-base_model.summary()
+# DEBUGGING ONLY
+#print("")
+#print("Base model (VGG16) summary:")
+#print("")
+#base_model.summary()
 
 # Layers specific to our classification task
 # Cases depening on the number of blocks used
 if blocks_used == 3: # only first 3 blocks (EXTRA test if we have time!)
-	x = base_model.layers[-13].output
+	# VERY DEMANDING IN MEMORY RESOURCES
+	#x = base_model.layers[-13].output (more clear like the line below)
+	x = base_model.get_layer("block3_pool").output
         # Flatten block3_conv4+pool' output
         x = Flatten()(x)
-        x = Dense(2048, activation='relu')(x)#,
+        x = Dense(1024, activation='relu')(x)
+	x = Dense(512, activation='relu')(x)
+#,
 		#kernel_initializer='glorot_normal',
 		#bias_initializer=Constant(value=0.1),
 		#name='own_first_FC')(x)
         #x = Dense(4096, activation='relu')(x)
 
-elif blocks_used == 4: # up to block 4
-	x = base_model.layers[-9].output
+elif blocks_used == 4: # up to block 4 
+	#x = base_model.layers[-9].output
+	x = base_model.get_layer("block4_pool").output
+	x = Flatten()(x)
 	# Add FC layers (1 for now, 2 uses too much memory in theory)
 	# Flatten block4_conv4+pool' output
-	x = Flatten()(x)
-	x = Dense(2048, activation='relu')(x)#,
+	#x = Flatten()(x)
+	x = Dense(1024, activation='relu')(x)
+	x = Dense(1024, activation='relu')(x)
+	#,
                 #kernel_initializer='glorot_normal',
                 #bias_initializer=Constant(value=0.1),
                 #name='own_first_FC')(x)
@@ -126,24 +130,29 @@ elif blocks_used == 4: # up to block 4
 
 else:	# complete VGG is used
 	# Simply get last FC output and change the classifier (done once outside 'if-else')
-	x = base_model.layers[-2].output	
-	
-x = Dense(8, activation='softmax',name='predictions')(x)
+	#x = base_model.layers[-2].output	
+	x = base_model.get_layer("fc2").output
 
-model = Model(inputs=base_model.input, outputs=x)
+predictions = Dense(8, activation='softmax', name='predictions')(x)
+
+model = Model(inputs=base_model.input, outputs=predictions)
 
 print("")
 print("Complete model (VGG16 + modifications) summary:")
 print("")
 model.summary()
+# Sleep to visualize the architecture that is about to be trained
+time.sleep(5)
 plot_model(model, to_file='modelVGG16b_up2block=' + str(blocks_used) + '.png', show_shapes=True, show_layer_names=True)
 
 if not train_from_scratch:
 	for layer in base_model.layers:
 		layer.trainable = False
+else: # if train_from_scratch
+	# Load top_model (FC layers) weights:
+	model.load_weights(top_fc_fname)
 
-
-model.compile(loss='categorical_crossentropy',optimizer='adadelta', metrics=['accuracy'])
+model.compile(loss='categorical_crossentropy', optimizer=Adadelta(lr=0.01), metrics=['accuracy'])
 for layer in model.layers:
 	print(layer.name, layer.trainable)
 
@@ -153,12 +162,16 @@ model_checkpoint = ModelCheckpoint(model_fname, monitor='val_acc', verbose=1,
 # Include TensorBoard here!
 # When the modelling has started training, open a new terminal and enter:
 # tensorboard --logdir ./TensorBoard_graphs (open the URL provided)
-tbCallback = TensorBoard(log_dir='./TensorBoard_graphs', histogram_freq=0,
+# Note: we give each model with a different fname is written to a
+# different directory so we can compare among runs (configure
+# filename properly when changing model params!)
+tbCallback = TensorBoard(log_dir='./TensorBoard_graphs/' +\
+	model_fname.replace('.h5','',1), histogram_freq=1,
 				write_graph=True, write_images=True)
 
 # Early stopping, to avoid having to select the nb_epochs as a parameter,
 # configure early stopping and stop after X epochs of worse val_acc
-earlyStopping = EarlyStopping(monitor='val_loss', patience=5, verbose=0, mode='max')
+earlyStopping = EarlyStopping(monitor='val_acc', patience=5, verbose=0, mode='max')
 # Add all callbacks to a list
 callbacks_list = [model_checkpoint, tbCallback, earlyStopping]
 
@@ -194,11 +207,9 @@ validation_generator = datagen.flow_from_directory(val_data_dir,
 		target_size=(img_width, img_height),
 		batch_size=batch_size,
 		class_mode='categorical')
-# Change of params of 'fit_generator':
-# DEPRECATED IN 2.1.2(nº of batches(steps)per epoch instead) ==> samples_per_epoch=batch_size*(int(400*1881/1881//batch_size)+1),
-# Just feed the number of batches as int(n_examples//batch_size +1) where n_examples are the unique samples of training
+
 history=model.fit_generator(train_generator,
-		steps_per_epoch=int(n_examples//batch_size +1),
+		steps_per_epoch=int(n_examples//batch_size +1),# number of batches per epoch
 		epochs=number_of_epoch,
 		validation_data=validation_generator,
 		validation_steps=807,
