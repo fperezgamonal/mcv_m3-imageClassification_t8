@@ -1,4 +1,4 @@
-# coding=utf-8
+#coding=utf-8
 from keras.applications.vgg16 import VGG16
 from keras.preprocessing import image
 from keras.models import Model
@@ -23,7 +23,9 @@ import getpass
 os.environ["CUDA_VISIBLE_DEVICES"]=getpass.getuser()[-1]
 
 # Dataset location
-train_data_dir = '/share/datasets/MIT_split/train'
+# Note: tmp_reducedDB contains only 400 training imgs randomly
+# selected from the original train_dir (same class rel. frequency)
+train_data_dir = '/home/master08/mcv_m3-imageClassification_t8/tmp_reducedDB/train' #'/share/datasets/MIT_split/train'
 val_data_dir = '/share/datasets/MIT_split/test'
 test_data_dir = '/share/datasets/MIT_split/test'
 
@@ -41,7 +43,7 @@ img_width = 224
 img_height=224
 batch_size=32
 number_of_epoch=50
-train_from_scratch = False# True #False 	# train all the layers (including whole VGG16)
+train_from_scratch = True #False 	# train all the layers (including whole VGG16)
 
 plot = False  			# Whether to compute acc and loss curves or not
 # Note: since we are using TensorBoard(LIVE results), we can use its curves and
@@ -120,8 +122,8 @@ elif blocks_used == 4: # up to block 4
 	# Add FC layers (1 for now, 2 uses too much memory in theory)
 	# Flatten block4_conv4+pool' output
 	#x = Flatten()(x)
-	x = Dense(1024, activation='relu')(x)
-	x = Dense(1024, activation='relu')(x)
+	x = Dense(1024, activation='relu', name='top_fc1')(x)
+	x = Dense(1024, activation='relu', name='top_fc2')(x)
 	#,
                 #kernel_initializer='glorot_normal',
                 #bias_initializer=Constant(value=0.1),
@@ -166,7 +168,7 @@ model_checkpoint = ModelCheckpoint(model_fname, monitor='val_acc', verbose=1,
 # different directory so we can compare among runs (configure
 # filename properly when changing model params!)
 tbCallback = TensorBoard(log_dir='./TensorBoard_graphs/' +\
-	model_fname.replace('.h5','',1), histogram_freq=1,
+	model_fname.replace('.h5','',1) + '/', histogram_freq=1,
 				write_graph=True, write_images=True)
 
 # Early stopping, to avoid having to select the nb_epochs as a parameter,
@@ -178,7 +180,7 @@ callbacks_list = [model_checkpoint, tbCallback, earlyStopping]
 #preprocessing_function=preprocess_input,
 datagen = ImageDataGenerator(featurewise_center=False,
 	samplewise_center=False,
-	featurewise_std_normalization=False,
+	featurewise_std_normalization=True,
 	samplewise_std_normalization=False,
 	preprocessing_function=preprocess_input,
 	rotation_range=0.,
@@ -191,7 +193,7 @@ datagen = ImageDataGenerator(featurewise_center=False,
 	cval=0.,
 	horizontal_flip=False,
 	vertical_flip=False,
-	rescale=None)
+	rescale=1./255)
 
 train_generator = datagen.flow_from_directory(train_data_dir,
 		target_size=(img_width, img_height),
