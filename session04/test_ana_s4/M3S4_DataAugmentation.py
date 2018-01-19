@@ -21,7 +21,7 @@ class DataAugmentation:
 		self.__fill_mode='nearest'
 		self.__cval=0.
 		self.__horizontal_flip = False 
-		self.__vertical_flip = False 
+		self.__vertical_flip = False
 		self.__rescale =  None
 		
 		self.__number_of_epoch = 20
@@ -94,7 +94,7 @@ class DataAugmentation:
 		return datagen
 	
 	def flow (self, datagen, batch_size, img_width, img_height, val_data_dir, test_data_dir, train_data_dir):
-		os.makedirs('images')
+
 		train_generator = datagen.flow_from_directory(train_data_dir,
 			target_size=(img_width, img_height),
 			batch_size=batch_size,
@@ -106,16 +106,12 @@ class DataAugmentation:
 		test_generator = datagen.flow_from_directory(test_data_dir,
 				target_size=(img_width, img_height),
 				batch_size=batch_size,
-				class_mode='categorical',
-				save_to_dir='images', 
-				save_prefix='aug_test_', 
-				save_format='png')
+				class_mode='categorical')
 
 		validation_generator = datagen.flow_from_directory(val_data_dir,
 				target_size=(img_width, img_height),
 				batch_size=batch_size,
-				class_mode='categorical',
-				save_to_dir='images', save_prefix='aug_val_', save_format='png')
+				class_mode='categorical')
 				
 		return train_generator, test_generator, validation_generator
 
@@ -133,6 +129,9 @@ class DataAugmentation:
 	def run (self):
 		# create ImageDataGenerator
 		print ('***')
+		#if (os.path.exists('images')==False:
+		os.makedirs('images')
+		
 		print ('step1')
 		datagen = self.create()
 
