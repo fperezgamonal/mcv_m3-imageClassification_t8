@@ -90,8 +90,8 @@ for layer in model.layers:
 print ('====')
 print ('dataAug')
 dataAug= DataAugmentation(preprocess_input, model)
-print ('HFlip')
-#dataAug.set_width_shift_range(05)
+print ('ZoomRange')
+dataAug.set_zoom_range(0.5)
 
 print ('run')
 history, test_generator = dataAug.run()
