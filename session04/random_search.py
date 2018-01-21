@@ -6,17 +6,15 @@ from keras.utils import plot_model
 import matplotlib.pyplot as plt
 from keras import regularizers
 from keras import optimizers
-from keras import KerasClassifier
 from sklearn.svm import SVC, LinearSVC
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.preprocessing import StandardScaler
-from sklearn.grid_search import GridSearchCV
 from sklearn.metrics import classification_report
 import numpy as np
 
 #user defined variables
 IMG_SIZE    = 32
-BATCH_SIZE  = 16
+BATCH_SIZE  = 32
 DATASET_DIR = '../../Databases/MIT_split'
 MODEL_FNAME = 'mlp.h5'
 
@@ -73,7 +71,7 @@ train_generator = train_datagen.flow_from_directory(
         target_size=(IMG_SIZE, IMG_SIZE),  # all images will be resized to IMG_SIZExIMG_SIZE
         batch_size=BATCH_SIZE,
         classes = ['coast','forest','highway','inside_city','mountain','Opencountry','street','tallbuilding'],
-        shuffle=False,
+        shuffle=True,
         class_mode='categorical')  # since we use binary_crossentropy loss, we need categorical labels
 
 # this is a similar generator, for validation data
@@ -82,49 +80,61 @@ validation_generator = test_datagen.flow_from_directory(
         target_size=(IMG_SIZE, IMG_SIZE),
         batch_size=BATCH_SIZE,
         classes = ['coast','forest','highway','inside_city','mountain','Opencountry','street','tallbuilding'],
-        shuffle=False,
+        shuffle=True,
         class_mode='categorical')
 
-print dir(validation_generator)
+def getXYfromGenerator(generator):
+	X,Y = generator.next()
+	batch_index = 1
+	
+	while batch_index <= generator.batch_index:
+		auxX, auxY = generator.next()
+		X = np.concatenate((X,auxX))
+		Y = np.concatenate((Y,auxY))
+		batch_index = batch_index + 1
 
-model = create_model()
+	return X,Y
 
+#model = create_model()
+
+''' It'll be the RandomSearch to fit
+	without fit_generator
 history = model.fit_generator(
         train_generator,
         steps_per_epoch=1881 // BATCH_SIZE,
-        epochs=100,
+        epochs=50,
         validation_data=validation_generator,
         validation_steps=807 // BATCH_SIZE)
+'''
 
-colorprint(Color.BLUE, 'Done!\n')
-colorprint(Color.BLUE, 'Saving the model into '+MODEL_FNAME+' \n')
-model.save_weights(MODEL_FNAME)  # always save your weights after training or during training
-colorprint(Color.BLUE, 'Done!\n')
+X,Y = getXYfromGenerator(train_generator)
+'''
+history = model.fit(x=X, y=Y,
+        #steps_per_epoch=1881 // BATCH_SIZE,
+        epochs=50,
+        validation_split=.3,
+		batch_size=BATCH_SIZE,
+		verbose=2)
+'''
 
-  # summarize history for accuracy
-plt.figure(1)
-plt.plot(history.history['acc'])
-plt.plot(history.history['val_acc'])
-plt.title('model accuracy')
-plt.ylabel('accuracy')
-plt.xlabel('epoch')
-plt.legend(['train', 'validation'], loc='upper left')
-plt.savefig('accuracy.jpg')
-plt.show()
-plt.close()
-  # summarize history for loss
-plt.figure(2)
-plt.plot(history.history['loss'])
-plt.plot(history.history['val_loss'])
-plt.title('model loss')
-plt.ylabel('loss')
-plt.xlabel('epoch')
-plt.legend(['train', 'validation'], loc='upper left')
-plt.savefig('loss.jpg')
-plt.show()
+from keras.wrappers.scikit_learn import KerasClassifier
+from sklearn.model_selection import RandomizedSearchCV
 
 modelClassifier = KerasClassifier(build_fn=create_model)
 
+params = dict(epochs=np.arange(1,50))
 
+random_search = RandomizedSearchCV(modelClassifier,
+								   param_distributions=params,
+								   n_iter=2,
+								   n_jobs=1,
+								   verbose=True)
 
+results = random_search.fit(X,Y)
 
+print("Best: %f using %s" % (results.best_score_, results.best_params_))
+means = results.cv_results_['mean_test_score']
+stds = results.cv_results_['std_test_score']
+params = results.cv_results_['params']
+for mean, stdev, param in zip(means, stds, params):
+    print("%f (%f) with: %r" % (mean, stdev, param))
