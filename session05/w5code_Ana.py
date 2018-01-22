@@ -1,7 +1,7 @@
 #coding=utf-8
 from keras.preprocessing import image
 from keras.models import Model
-from keras.layers import Flatten, Dense
+from keras.layers import Sequential, Flatten, Dense
 from keras.layers import Conv2D, GlobalAveragePooling2D, Dropout, BatchNormalization
 from keras.initializers import Constant
 from keras.optimizers import SGD, Adam, Adadelta, Adagrad
