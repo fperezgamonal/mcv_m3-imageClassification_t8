@@ -20,12 +20,12 @@ import os
 import getpass
 
 # Use only our gpu
-os.environ["CUDA_VISIBLE_DEVICES"]=getpass.getuser()[-1]
+#os.environ["CUDA_VISIBLE_DEVICES"]=getpass.getuser()[-1]
 
 # Dataset location
 # Note: tmp_reducedDB contains only 400 training imgs randomly
 # selected from the original train_dir (same class rel. frequency)
-train_data_dir = '/home/master08/mcv_m3-imageClassification_t8/tmp_reducedDB/train' #'/share/datasets/MIT_split/train'
+train_data_dir = '/share/datasets/MIT_split/test'#'/home/master08/mcv_m3-imageClassification_t8/tmp_reducedDB/train' #'/share/datasets/MIT_split/train'
 val_data_dir = '/share/datasets/MIT_split/test'
 test_data_dir = '/share/datasets/MIT_split/test'
 
@@ -43,7 +43,7 @@ img_width = 224
 img_height=224
 batch_size=32
 number_of_epoch=50
-train_from_scratch = True #False 	# train all the layers (including whole VGG16)
+train_from_scratch = False #False 	# train all the layers (including whole VGG16)
 
 plot = False  			# Whether to compute acc and loss curves or not
 # Note: since we are using TensorBoard(LIVE results), we can use its curves and
@@ -53,7 +53,7 @@ plot = False  			# Whether to compute acc and loss curves or not
 dropout = False
 drop_prob = 0.5
 blocks_used = 4			# blocks of the original VGG net used (def=5)
-n_examples = 1881		# Number of training examples used (def=1881)
+n_examples = 400		# Number of training examples used (def=1881)
 
 # Task-specific model weights (topModel==> added layers)
 top_fc_fname = "top_FC_layers-n_examples=" + str(n_examples) +\
