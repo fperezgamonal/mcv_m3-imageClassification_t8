@@ -84,7 +84,7 @@ def preprocess_input(x, dim_ordering='default'):
 # Definition of the CNN architecture
 model = Sequential()
 model.add(Conv2D(32, (3,3), padding='same', activation='relu',
-		input_shape(img_width, img_height, 3), name='conv_1'))
+		input_shape=(img_width, img_height, 3), name='conv_1'))
 model.add(MaxPooling2D(pool_size=(2,2), name='pool_1'))
 
 if batch_norm:
