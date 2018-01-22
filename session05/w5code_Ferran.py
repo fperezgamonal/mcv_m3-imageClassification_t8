@@ -1,8 +1,9 @@
 #coding=utf-8
 from keras.preprocessing import image
 from keras.models import Model
-from keras.layers import Sequential, Flatten, Dense
-from keras.layers import Conv2D, GlobalAveragePooling2D, Dropout, BatchNormalization
+from keras.models import Sequential
+from keras.layers import Conv2D, GlobalAveragePooling2D, Dropout,\
+	BatchNormalization, Flatten, Dense, MaxPooling2D
 from keras.initializers import Constant
 from keras.optimizers import SGD, Adam, Adadelta, Adagrad
 from keras import backend as K
@@ -22,18 +23,18 @@ import getpass
 os.environ["CUDA_VISIBLE_DEVICES"]=getpass.getuser()[-1]
 
 # Dataset location
-train_data_dir = '/share/datasets/MIT_split/test'
-val_data_dir = '/share/datasets/MIT_split/test'
-test_data_dir = '/share/datasets/MIT_split/test'
+#train_data_dir = '/share/datasets/MIT_split/test'
+#val_data_dir = '/share/datasets/MIT_split/test'
+#test_data_dir = '/share/datasets/MIT_split/test'
 
 # Original S04 script path (different folder structure)
 # train_data_dir='/data/MIT/train'
 # val_data_dir='/data/MIT/test'
 # test_data_dir='/data/MIT/test'
 # The dataset locally is here (like last week):
-#train_data_dir = '../../Databases/MIT_split/train'
-#val_data_dir = '../../Databases/MIT_split/test'
-#test_data_dir = '../../Databases/MIT_split/test'
+train_data_dir = '../../Databases/MIT_split/train'
+val_data_dir = '../../Databases/MIT_split/test'
+test_data_dir = '../../Databases/MIT_split/test'
 
 # Basic parameters
 img_width = 256
@@ -55,9 +56,9 @@ n_examples = 1881		# Number of training examples used (def=1881)
 
 # Model filename
 model_fname = "modelCNN-n_examples=" + str(n_examples) +\
-		"_blocks_used=" + str(blocks_used) + "_dropout=" +\
-		str(dropout) + "_p=" + str(drop_prob) + "_batchNorm=" +\
-		str(batch_norm) + ".h5"
+			  "_dropout=" + str(dropout) + "_p=" +\
+			  str(drop_prob) + "_batchNorm=" +\
+				str(batch_norm) + ".h5"
 
 # Pre-processing (zero-center images)
 def preprocess_input(x, dim_ordering='default'):
@@ -83,22 +84,22 @@ def preprocess_input(x, dim_ordering='default'):
 
 # Definition of the CNN architecture
 model = Sequential()
-model.add(Conv2D(32, (3,3), padding='same', activation='relu',
+model.add(Conv2D(16, (3,3), padding='same', activation='relu',
 		input_shape=(img_width, img_height, 3), name='conv_1'))
 model.add(MaxPooling2D(pool_size=(2,2), name='pool_1'))
 
 if batch_norm:
 	model.add(BatchNormalization())
 
-model.add(Conv2D(64, (3,3), padding='same', activation='relu', name='conv_2'))
+model.add(Conv2D(32, (3,3), padding='same', activation='relu', name='conv_2'))
 model.add(MaxPooling2D(pool_size=(2,2), name='pool_2'))
 
 model.add(Flatten())
-model.add(Dense(2048, activation='relu', name='dense_1'))
+model.add(Dense(512, activation='relu', name='dense_1'))
 
 if dropout:
 	model.add(Dropout(drop_prob, name='drop_1'))
-model.add(Dense(1024, activation='relu', name='dense_2'))
+model.add(Dense(256, activation='relu', name='dense_2'))
 
 if dropout:
 	model.add(Dropout(drop_prob, name='drop_2'))
@@ -146,23 +147,23 @@ reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=.5, patience=3,
 callbacks_list = [model_checkpoint, tbCallback, earlyStopping, reduce_lr]
 
 #preprocessing_function=preprocess_input,
-if num_examples > 1881: # create more samples w. data augmentation
+if n_examples > 1881: # create more samples w. data augmentation
 	datagen = ImageDataGenerator(featurewise_center=False,
-        	samplewise_center=False,
-        	featurewise_std_normalization=True,
-        	samplewise_std_normalization=False,
-        	preprocessing_function=preprocess_input,
-        	rotation_range=10.,
-        	width_shift_range=0.2,
-        	height_shift_range=0.2,
-        	shear_range=0.2,
-        	zoom_range=.5,
-        	channel_shift_range=0.,
-        	fill_mode='reflect',
-        	cval=0.,
-        	horizontal_flip=True,
-        	vertical_flip=False,
-        	rescale=1./255)
+			samplewise_center=False,
+			featurewise_std_normalization=True,
+			samplewise_std_normalization=False,
+			preprocessing_function=preprocess_input,
+			rotation_range=10.,
+			width_shift_range=0.2,
+			height_shift_range=0.2,
+			shear_range=0.2,
+			zoom_range=.5,
+			channel_shift_range=0.,
+			fill_mode='reflect',
+			cval=0.,
+			horizontal_flip=True,
+			vertical_flip=False,
+			rescale=1./255)
 else:
 	datagen = ImageDataGenerator(featurewise_center=False,
 		samplewise_center=False,
