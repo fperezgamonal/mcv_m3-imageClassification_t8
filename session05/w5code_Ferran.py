@@ -97,11 +97,11 @@ model.add(Flatten())
 model.add(Dense(2048, activation='relu', name='dense_1'))
 
 if dropout:
-	model.add(Dropout(drop_prob), name='drop_1'))
+	model.add(Dropout(drop_prob, name='drop_1'))
 model.add(Dense(1024, activation='relu', name='dense_2'))
 
 if dropout:
-	model.add(Dropout(drop_prob), name='drop_2'))
+	model.add(Dropout(drop_prob, name='drop_2'))
 
 model.add(Dense(8, activation='softmax', name='predictions'))
 
