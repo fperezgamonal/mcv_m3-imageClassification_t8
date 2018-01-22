@@ -1,13 +1,12 @@
 #coding=utf-8
-from keras.applications.vgg16 import VGG16
 from keras.preprocessing import image
 from keras.models import Model
-from keras.layers import Flatten
-from keras.layers import Dense, GlobalAveragePooling2D
+from keras.layers import Flatten, Dense
+from keras.layers import Conv2D, GlobalAveragePooling2D, Dropout, BatchNormalization
 from keras.initializers import Constant
 from keras.optimizers import SGD, Adam, Adadelta, Adagrad
 from keras import backend as K
-from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
+from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping, ReduceLROnPlateau
 from keras.utils.vis_utils import plot_model
 #from keras.utils.visualize_util import plot (use this if
 # the import above does not work). This is from an older Keras version.
@@ -20,12 +19,10 @@ import os
 import getpass
 
 # Use only our gpu
-#os.environ["CUDA_VISIBLE_DEVICES"]=getpass.getuser()[-1]
+os.environ["CUDA_VISIBLE_DEVICES"]=getpass.getuser()[-1]
 
 # Dataset location
-# Note: tmp_reducedDB contains only 400 training imgs randomly
-# selected from the original train_dir (same class rel. frequency)
-train_data_dir = '/share/datasets/MIT_split/test'#'/home/master08/mcv_m3-imageClassification_t8/tmp_reducedDB/train' #'/share/datasets/MIT_split/train'
+train_data_dir = '/share/datasets/MIT_split/test'
 val_data_dir = '/share/datasets/MIT_split/test'
 test_data_dir = '/share/datasets/MIT_split/test'
 
@@ -39,11 +36,10 @@ test_data_dir = '/share/datasets/MIT_split/test'
 #test_data_dir = '../../Databases/MIT_split/test'
 
 # Basic parameters
-img_width = 224
-img_height=224
+img_width = 256
+img_height=256
 batch_size=32
 number_of_epoch=50
-train_from_scratch = False #False 	# train all the layers (including whole VGG16)
 
 plot = False  			# Whether to compute acc and loss curves or not
 # Note: since we are using TensorBoard(LIVE results), we can use its curves and
@@ -51,21 +47,17 @@ plot = False  			# Whether to compute acc and loss curves or not
 # problems while saving these graphs in the server.
 
 dropout = False
+batch_norm = False
 drop_prob = 0.5
-blocks_used = 4			# blocks of the original VGG net used (def=5)
-n_examples = 400		# Number of training examples used (def=1881)
+n_examples = 1881		# Number of training examples used (def=1881)
+# If n_examples > 1881, data augmentation is used
 
-# Task-specific model weights (topModel==> added layers)
-top_fc_fname = "top_FC_layers-n_examples=" + str(n_examples) +\
+
+# Model filename
+model_fname = "top_FC_layers-n_examples=" + str(n_examples) +\
 		"_blocks_used=" + str(blocks_used) + "_dropout=" +\
-		str(dropout) + "_p=" + str(drop_prob) + ".h5"
-
-# Check if we are training (and can) the whole model or just training new layers
-if (train_from_scratch == False): # leave model_fname as is
-	print("We will train ONLY the new layers added to the base model")
-	model_fname = top_fc_fname
-else:
-	model_fname = top_fc_fname.replace("top_FC_layers", "whole_model", 1)
+		str(dropout) + "_p=" + str(drop_prob) + "_batchNorm=" +\
+		str(batch_norm) + ".h5"
 
 # Pre-processing (zero-center images)
 def preprocess_input(x, dim_ordering='default'):
@@ -89,79 +81,49 @@ def preprocess_input(x, dim_ordering='default'):
 		x[:, :, 2] -= 123.68
 	return x
 
-base_model = VGG16(weights='imagenet')
-if not os.path.isfile('modelVGG16a.png'):
-	plot_model(base_model, to_file='modelVGG16a.png', show_shapes=True, show_layer_names=True)
+# Definition of the CNN architecture
+model = Sequential()
+model.add(Conv2D(32, (3,3), padding='same', activation='relu',
+		input_shape(img_width, img_height, 3), name='conv_1')
+model.add(MaxPooling2D(pool_size=(2,2), name='pool_1')
 
-# DEBUGGING ONLY
-#print("")
-#print("Base model (VGG16) summary:")
-#print("")
-#base_model.summary()
+if batch_norm:
+	model.add(BatchNormalization())
 
-# Layers specific to our classification task
-# Cases depening on the number of blocks used
-if blocks_used == 3: # only first 3 blocks (EXTRA test if we have time!)
-	# VERY DEMANDING IN MEMORY RESOURCES
-	#x = base_model.layers[-13].output (more clear like the line below)
-	x = base_model.get_layer("block3_pool").output
-        # Flatten block3_conv4+pool' output
-        x = Flatten()(x)
-        x = Dense(1024, activation='relu')(x)
-	x = Dense(512, activation='relu')(x)
-#,
-		#kernel_initializer='glorot_normal',
-		#bias_initializer=Constant(value=0.1),
-		#name='own_first_FC')(x)
-        #x = Dense(4096, activation='relu')(x)
+model.add(Conv2D(64, (3,3), padding='same', activation='relu', name='conv_2')
+model.add(MaxPooling2D(pool_size=(2,2), name='pool_2')
 
-elif blocks_used == 4: # up to block 4 
-	#x = base_model.layers[-9].output
-	x = base_model.get_layer("block4_pool").output
-	x = Flatten()(x)
-	# Add FC layers (1 for now, 2 uses too much memory in theory)
-	# Flatten block4_conv4+pool' output
-	#x = Flatten()(x)
-	x = Dense(1024, activation='relu', name='top_fc1')(x)
-	x = Dense(1024, activation='relu', name='top_fc2')(x)
-	#,
-                #kernel_initializer='glorot_normal',
-                #bias_initializer=Constant(value=0.1),
-                #name='own_first_FC')(x)
-	#x = Dense(4096, activation='relu')(x)
+model.add(Flatten())
+model.add(Dense(2048, activation='relu', name='dense_1'))
 
-else:	# complete VGG is used
-	# Simply get last FC output and change the classifier (done once outside 'if-else')
-	#x = base_model.layers[-2].output	
-	x = base_model.get_layer("fc2").output
+if dropout:
+	model.add(Dropout(drop_prob), name='drop_1')
+model.add(Dense(1024, activation='relu', name='dense_2'))
+
+if dropout:
+	model.add(Dropout(drop_prob), name='drop_2')
 
 predictions = Dense(8, activation='softmax', name='predictions')(x)
 
-model = Model(inputs=base_model.input, outputs=predictions)
 
 print("")
-print("Complete model (VGG16 + modifications) summary:")
+print("Model summary (layers (dimension+name) + num. params/layer):")
 print("")
 model.summary()
 # Sleep to visualize the architecture that is about to be trained
-time.sleep(5)
-plot_model(model, to_file='modelVGG16b_up2block=' + str(blocks_used) + '.png', show_shapes=True, show_layer_names=True)
+time.sleep(3)
+plot_model(model, to_file=model_fname.replace('.h5','.png',1), show_shapes=True, show_layer_names=True) 
 
-if not train_from_scratch:
-	for layer in base_model.layers:
-		layer.trainable = False
-else: # if train_from_scratch
-	# Load top_model (FC layers) weights:
-	model.load_weights(top_fc_fname)
-
-model.compile(loss='categorical_crossentropy', optimizer=Adadelta(lr=0.01), metrics=['accuracy'])
-for layer in model.layers:
-	print(layer.name, layer.trainable)
+if os.path.isfile(model_fname):
+	print("This model was already trained, overwritting may occur...")
+# With 'Adam', lr=0.001 is the default. Change according to the results!
+model.compile(loss='categorical_crossentropy', optimizer=Adam(lr=0.001), metrics=['accuracy'])
 
 # Define checkpoint to store the best model only
 model_checkpoint = ModelCheckpoint(model_fname, monitor='val_acc', verbose=1,
-			save_best_only=True, mode='max')
-# Include TensorBoard here!
+save_best_only=True, mode='max')
+# TensorBoard
+# ---- Instructions ----
 # When the modelling has started training, open a new terminal and enter:
 # tensorboard --logdir ./TensorBoard_graphs (open the URL provided)
 # Note: we give each model with a different fname is written to a
@@ -174,32 +136,56 @@ tbCallback = TensorBoard(log_dir='./TensorBoard_graphs/' +\
 # Early stopping, to avoid having to select the nb_epochs as a parameter,
 # configure early stopping and stop after X epochs of worse val_acc
 earlyStopping = EarlyStopping(monitor='val_acc', patience=5, verbose=0, mode='max')
+
+# Reduce learning rate on plateau
+# Sometimes it helps to reduce the learning rate when the loss/accuracy does not improve
+reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=.5, patience=3,
+				min_lr=1e-5)
+
 # Add all callbacks to a list
-callbacks_list = [model_checkpoint, tbCallback, earlyStopping]
+callbacks_list = [model_checkpoint, tbCallback, earlyStopping, reduce_lr]
 
 #preprocessing_function=preprocess_input,
-datagen = ImageDataGenerator(featurewise_center=False,
-	samplewise_center=False,
-	featurewise_std_normalization=True,
-	samplewise_std_normalization=False,
-	preprocessing_function=preprocess_input,
-	rotation_range=0.,
-	width_shift_range=0.,
-	height_shift_range=0.,
-	shear_range=0.,
-	zoom_range=0.,
-	channel_shift_range=0.,
-	fill_mode='nearest',
-	cval=0.,
-	horizontal_flip=False,
-	vertical_flip=False,
-	rescale=1./255)
+if num_examples > 1881: # create more samples w. data augmentation
+	datagen = ImageDataGenerator(featurewise_center=False,
+        	samplewise_center=False,
+        	featurewise_std_normalization=True,
+        	samplewise_std_normalization=False,
+        	preprocessing_function=preprocess_input,
+        	rotation_range=10.,
+        	width_shift_range=0.2,
+        	height_shift_range=0.2,
+        	shear_range=0.2,
+        	zoom_range=.5,
+        	channel_shift_range=0.,
+        	fill_mode='reflect',
+        	cval=0.,
+        	horizontal_flip=True,
+        	vertical_flip=False,
+        	rescale=1./255)
+else:
+	datagen = ImageDataGenerator(featurewise_center=False,
+		samplewise_center=False,
+		featurewise_std_normalization=True,
+		samplewise_std_normalization=False,
+		preprocessing_function=preprocess_input,
+		rotation_range=0.,
+		width_shift_range=0.,
+		height_shift_range=0.,
+		shear_range=0.,
+		zoom_range=0.,
+		channel_shift_range=0.,
+		fill_mode='nearest',
+		cval=0.,
+		horizontal_flip=False,
+		vertical_flip=False,
+		rescale=1./255)
 
 train_generator = datagen.flow_from_directory(train_data_dir,
 		target_size=(img_width, img_height),
 		batch_size=batch_size,
 		class_mode='categorical')
-
+# Change to create an independent folder for test (??)
 test_generator = datagen.flow_from_directory(test_data_dir,
 		target_size=(img_width, img_height),
 		batch_size=batch_size,
@@ -214,10 +200,10 @@ history=model.fit_generator(train_generator,
 		steps_per_epoch=int(n_examples//batch_size +1),# number of batches per epoch
 		epochs=number_of_epoch,
 		validation_data=validation_generator,
-		validation_steps=807,
+		validation_steps=807,			# if test has a new folder this is reduced! 
 		callbacks=callbacks_list)
 
-
+# Change this if need be (see above)
 result = model.evaluate_generator(test_generator, steps=807)
 print("Test results (Loss + Accuracy):" + str(result)) 
 
