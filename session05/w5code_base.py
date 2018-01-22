@@ -54,7 +54,7 @@ n_examples = 1881		# Number of training examples used (def=1881)
 
 
 # Model filename
-model_fname = "top_FC_layers-n_examples=" + str(n_examples) +\
+model_fname = "modelCNN-n_examples=" + str(n_examples) +\
 		"_blocks_used=" + str(blocks_used) + "_dropout=" +\
 		str(dropout) + "_p=" + str(drop_prob) + "_batchNorm=" +\
 		str(batch_norm) + ".h5"
@@ -84,26 +84,26 @@ def preprocess_input(x, dim_ordering='default'):
 # Definition of the CNN architecture
 model = Sequential()
 model.add(Conv2D(32, (3,3), padding='same', activation='relu',
-		input_shape(img_width, img_height, 3), name='conv_1')
-model.add(MaxPooling2D(pool_size=(2,2), name='pool_1')
+		input_shape(img_width, img_height, 3), name='conv_1'))
+model.add(MaxPooling2D(pool_size=(2,2), name='pool_1'))
 
 if batch_norm:
 	model.add(BatchNormalization())
 
-model.add(Conv2D(64, (3,3), padding='same', activation='relu', name='conv_2')
-model.add(MaxPooling2D(pool_size=(2,2), name='pool_2')
+model.add(Conv2D(64, (3,3), padding='same', activation='relu', name='conv_2'))
+model.add(MaxPooling2D(pool_size=(2,2), name='pool_2'))
 
 model.add(Flatten())
 model.add(Dense(2048, activation='relu', name='dense_1'))
 
 if dropout:
-	model.add(Dropout(drop_prob), name='drop_1')
+	model.add(Dropout(drop_prob), name='drop_1'))
 model.add(Dense(1024, activation='relu', name='dense_2'))
 
 if dropout:
-	model.add(Dropout(drop_prob), name='drop_2')
+	model.add(Dropout(drop_prob), name='drop_2'))
 
-predictions = Dense(8, activation='softmax', name='predictions')(x)
+model.add(Dense(8, activation='softmax', name='predictions'))
 
 
 print("")
