@@ -23,18 +23,18 @@ import getpass
 os.environ["CUDA_VISIBLE_DEVICES"]=getpass.getuser()[-1]
 
 # Dataset location
-#train_data_dir = '/share/datasets/MIT_split/test'
-#val_data_dir = '/share/datasets/MIT_split/test'
-#test_data_dir = '/share/datasets/MIT_split/test'
+train_data_dir = '/share/datasets/MIT_split/test'
+val_data_dir = '/share/datasets/MIT_split/test'
+test_data_dir = '/share/datasets/MIT_split/test'
 
 # Original S04 script path (different folder structure)
 # train_data_dir='/data/MIT/train'
 # val_data_dir='/data/MIT/test'
 # test_data_dir='/data/MIT/test'
 # The dataset locally is here (like last week):
-train_data_dir = '../../Databases/MIT_split/train'
-val_data_dir = '../../Databases/MIT_split/test'
-test_data_dir = '../../Databases/MIT_split/test'
+# train_data_dir = '../../Databases/MIT_split/train'
+# val_data_dir = '../../Databases/MIT_split/test'
+# test_data_dir = '../../Databases/MIT_split/test'
 
 # Basic parameters
 img_width = 256
@@ -84,14 +84,14 @@ def preprocess_input(x, dim_ordering='default'):
 
 # Definition of the CNN architecture
 model = Sequential()
-model.add(Conv2D(16, (3,3), padding='same', activation='relu',
+model.add(Conv2D(32, (3,3), padding='same', activation='relu',
 		input_shape=(img_width, img_height, 3), name='conv_1'))
 model.add(MaxPooling2D(pool_size=(2,2), name='pool_1'))
 
 if batch_norm:
 	model.add(BatchNormalization())
 
-model.add(Conv2D(32, (3,3), padding='same', activation='relu', name='conv_2'))
+model.add(Conv2D(16, (3,3), padding='same', activation='relu', name='conv_2'))
 model.add(MaxPooling2D(pool_size=(2,2), name='pool_2'))
 
 model.add(Flatten())
@@ -113,12 +113,14 @@ print("")
 model.summary()
 # Sleep to visualize the architecture that is about to be trained
 time.sleep(3)
-plot_model(model, to_file=model_fname.replace('.h5','.png',1), show_shapes=True, show_layer_names=True) 
+plot_model(model, to_file=model_fname.replace('.h5','.png',1),
+		   show_shapes=True, show_layer_names=True)
 
 if os.path.isfile(model_fname):
 	print("This model was already trained, overwritting may occur...")
 # With 'Adam', lr=0.001 is the default. Change according to the results!
-model.compile(loss='categorical_crossentropy', optimizer=Adam(lr=0.001), metrics=['accuracy'])
+model.compile(loss='categorical_crossentropy', optimizer=Adam(lr=0.001),
+			  metrics=['accuracy'])
 
 # Define checkpoint to store the best model only
 model_checkpoint = ModelCheckpoint(model_fname, monitor='val_acc', verbose=1,
