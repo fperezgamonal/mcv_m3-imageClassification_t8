@@ -3,7 +3,7 @@ from keras.preprocessing import image
 from keras.models import Model
 from keras.models import Sequential
 from keras.layers import Conv2D, GlobalAveragePooling2D, Dropout,\
-	BatchNormalization, Flatten, Dense, MaxPooling2D
+	BatchNormalization, Flatten, Dense, MaxPooling2D, Reshape
 from keras.initializers import Constant
 from keras.optimizers import SGD, Adam, Adadelta, Adagrad
 from keras import backend as K
@@ -23,7 +23,7 @@ import getpass
 os.environ["CUDA_VISIBLE_DEVICES"]=getpass.getuser()[-1]
 
 # Dataset location
-train_data_dir = '/share/datasets/MIT_split/test'
+train_data_dir = '/share/datasets/MIT_split/train'
 val_data_dir = '/share/datasets/MIT_split/test'
 test_data_dir = '/share/datasets/MIT_split/test'
 
@@ -91,15 +91,16 @@ model.add(MaxPooling2D(pool_size=(2,2), name='pool_1'))
 if batch_norm:
 	model.add(BatchNormalization())
 
-model.add(Conv2D(16, (3,3), padding='same', activation='relu', name='conv_2'))
+model.add(Conv2D(32, (3,3), padding='same', activation='relu', name='conv_2'))
 model.add(MaxPooling2D(pool_size=(2,2), name='pool_2'))
 
 model.add(Flatten())
-model.add(Dense(512, activation='relu', name='dense_1'))
+
+model.add(Dense(256, activation='relu', name='dense_1'))
 
 if dropout:
 	model.add(Dropout(drop_prob, name='drop_1'))
-model.add(Dense(256, activation='relu', name='dense_2'))
+model.add(Dense(128, activation='relu', name='dense_2'))
 
 if dropout:
 	model.add(Dropout(drop_prob, name='drop_2'))
@@ -132,8 +133,11 @@ save_best_only=True, mode='max')
 # Note: we give each model with a different fname is written to a
 # different directory so we can compare among runs (configure
 # filename properly when changing model params!)
+# Get timestamp to avoid overwritting similar events (plots would be 
+# useless otherwise*). * if we repeat a run with the same 'model_fname'
+timestr = time.strftime("%Y%m%d-%H%M%S")
 tbCallback = TensorBoard(log_dir='./TensorBoard_graphs/' +\
-	model_fname.replace('.h5','',1) + '/', histogram_freq=1,
+	model_fname.replace('.h5','',1) + '_' + timestr + '/', histogram_freq=1,
 				write_graph=True, write_images=True)
 
 # Early stopping, to avoid having to select the nb_epochs as a parameter,
